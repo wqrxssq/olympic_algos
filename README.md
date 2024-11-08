@@ -1,1 +1,1 @@
-# olympic_algos
+# Repository
