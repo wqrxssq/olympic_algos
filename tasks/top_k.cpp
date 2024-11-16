@@ -57,20 +57,18 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 
 const int MAXN = 1e8;
 const int MAXK = 200000;
-const int MAXMEM = 1.5e6;
+const int MAXMEM = 1e6;
 const int MAXMASK = (1 << 31) - 1;
 int n, k, first_x, second_x, a, b, c;
 
-bool is_cyclic;
-int find_;
-int cnt[MAXMEM];
+bool is_cyclic = false;
 int ans[MAXK];
 
-inline int find_max_element(int max_element) {
+int find_max_element(int max_element) {
     int x0 = first_x;
     int x1 = second_x;
     int max_el = 0;
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < n; i++) {
         int xn = (1LL * a * x0 + 1LL * b * x1 + c) & MAXMASK;
 
         if (xn == x0 && xn == x1) {
@@ -87,61 +85,39 @@ inline int find_max_element(int max_element) {
     return max_el;
 }
 
-inline void fill_ans(int max_el) {
-    memset(cnt, 0, sizeof(int) * MAXMEM);
-
+int get_count(int min_can) {
+    int cnt = 0;
     int x0 = first_x;
     int x1 = second_x;
-    for (int i = 0; i < n; ++i) {
-        int xn = (1LL * a * x0 + 1LL * b * x1 + c) & MAXMASK;
-        x0 = x1;
-        x1 = xn;
-        if (xn <= max_el && max_el - xn < MAXMEM) {
-            ++cnt[max_el - xn];
-        }
-    }
-
-    for (int i = 0; i < MAXMEM; i++) {
-        for (int j = 0; j < cnt[i]; j++) {
-            if (find_ == k) {
-                return;
-            }
-            ans[find_++] = max_el - i;
-        }
-    }
-}
-
-inline void stupid_solve() {
-    priority_queue<int, vi, greater<int>> q;
-
-    int x0 = first_x;
-    int x1 = second_x;
+    int max_el = 0;
     for (int i = 0; i < n; i++) {
         int xn = (1LL * a * x0 + 1LL * b * x1 + c) & MAXMASK;
         x0 = x1;
         x1 = xn;
+        cnt += (xn >= min_can);
+    }
+    return cnt;
+}
 
-        q.push(xn);
-        if (q.size() > k) {
-            q.pop();
+vi get_in(int l, int r) {
+    vi temp;
+
+    int x0 = first_x;
+    int x1 = second_x;
+    int max_el = 0;
+    for (int i = 0; i < n; i++) {
+        int xn = (1LL * a * x0 + 1LL * b * x1 + c) & MAXMASK;
+        x0 = x1;
+        x1 = xn;
+        if (xn <= r && xn >= l) {
+            temp.pb(xn);
         }
     }
 
-    vi temp;
-    while(!q.empty()) {
-        temp.pb(q.top());
-        q.pop();
-    }
-
-    sort(all(temp));
-    reverse(all(temp));
-
-    for (auto val : temp) {
-        ans[find_++] = val;
-    }
+    return temp;
 }
 
-inline void very_smart_solve() {
+void very_smart_solve() {
     vi temp;
 
     int x0 = first_x;
@@ -164,87 +140,94 @@ inline void very_smart_solve() {
     sort(all(temp));
     reverse(all(temp));
 
+    int find_ = 0;
     for (int i = 0; i < temp.size(); i++) {
         if (temp[i] <= cyclic_el) {
             break;
         }
-        ans[find_++] = temp[i];
+        cout << temp[i] << ' ';
+        find_++;
     }
     while (find_ < k) {
-        ans[find_++] = cyclic_el;
+        cout << cyclic_el << ' ';
+        find_++;
     }
+    cout << '\n';
 }
 
-inline void smart_solve() {
-    int max_element = find_max_element(MAXMASK);
-
-    if (is_cyclic) {
-          very_smart_solve();
-          return;
+void very_stupid_solve() {
+    vi temp;
+    int x0 = first_x;
+    int x1 = second_x;
+    for (int i = 0; i < n; i++) {
+        int xn = (1LL * a * x0 + 1LL * b * x1 + c) & MAXMASK;
+        x0 = x1;
+        x1 = xn;
+        temp.pb(xn);
     }
-
-    while (find_ < k) {
-        int prev_find = find_;
-        fill_ans(max_element);
-        if (find_ == prev_find) {
-            max_element = find_max_element(max_element - 1);
-        } else {
-            max_element -= MAXMEM;
-        }
+    sort(all(temp));
+    reverse(all(temp));
+    for (int i = 0; i < k; i++) {
+        cout << temp[i] << ' ';
     }
+    cout << '\n';
 }
 
 void solve() {
-    // cin >> n >> k >> first_x >> second_x >> a >> b >> c;
+    cin >> n >> k >> first_x >> second_x >> a >> b >> c;
 
-    find_ = 0;
-    is_cyclic = false;
-    if (n < 8 * MAXMEM) {
-        stupid_solve();
-    } else {
-        smart_solve();
+    int max_element = find_max_element(MAXMASK);
+
+    if (is_cyclic) {
+        very_smart_solve();
+        return;
+    }
+    if (n <= MAXMEM) {
+        very_stupid_solve();
+        return;
     }
 
-    // for (int i = 0; i < k; i++) {
-    //     cout << ans[i] << ' ';
-    // }
-    // cout << '\n';
-}
+    int min_can = max(0, max_element - (max_element / n) * k * 4);
+    int cnt_greater = get_count(min_can);
 
-void gen_test() {
-    n = MAXN;
-    k = MAXK;
+    assert(cnt_greater <= MAXMEM);
 
-    first_x = rnd() % MAXMASK;
-    second_x = rnd() % MAXMASK;
-    a = rnd() % MAXMASK;
-    b = rnd() % MAXMASK;
-    c = rnd() % MAXMASK;
+    vi a = get_in(min_can, max_element);
+
+    sort(all(a));
+    reverse(all(a));
+    for (int i = 0; i < min(sz(a), k); i++) {
+        ans[i] = a[i];
+    }
+
+    if (cnt_greater < k) {
+        int max_element2 = find_max_element(a.back() - 1);
+        int min_can2 = max(0, max_element2 - (max_element2 / n) * k * 10);
+
+        vi b = get_in(min_can2, max_element2);
+        sort(all(b));
+        reverse(all(b));
+
+        assert(sz(a) + sz(b) >= k);
+
+        for (int i = sz(a); i < k; i++) {
+            ans[i] = b[i - sz(b)];
+        }
+    }
+
+    for (int i = 0; i < k; i++) {
+        cout << ans[i] << ' ';
+    }
+    cout << '\n';
 }
 
 int main() {
+    fast_input;
+
 #ifdef __APPLE__
     freopen("in.txt", "r", stdin);
     freopen("out.txt", "w", stdout);
 #endif
 
-    int t;
-    cin >> t;
-    while (t--) {
-        gen_test();
-
-        auto begin = std::chrono::steady_clock::now();
-
-        solve();
-
-        auto end = std::chrono::steady_clock::now();
-
-        auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
-        if (elapsed_ms > 1300ms) {
-            cout << n << ' ' << k << '\n';
-            cout << first_x << ' ' << second_x << ' ' << a << ' ' << b << ' ' << c << '\n';
-            break;
-        }
-        cerr << "The time: " << elapsed_ms.count() << " ms\n";
-    }
+    solve();
 }
