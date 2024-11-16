@@ -1,3 +1,5 @@
+#pragma GCC optimize("O3,unroll-loops")
+
 #include <math.h>
 
 #include <algorithm>
@@ -64,11 +66,11 @@ int find_;
 int cnt[MAXMEM];
 int ans[MAXK];
 
-int find_max_element() {
+inline int find_max_element(int max_element) {
     int x0 = first_x;
     int x1 = second_x;
     int max_el = 0;
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < n; ++i) {
         int xn = (1LL * a * x0 + 1LL * b * x1 + c) & MAXMASK;
 
         if (xn == x0 && xn == x1) {
@@ -77,18 +79,20 @@ int find_max_element() {
 
         x0 = x1;
         x1 = xn;
-        max_el = max(max_el, xn);
+        if (xn <= max_element) {
+            max_el = max(max_el, xn);
+        }
     }
 
     return max_el;
 }
 
-void fill_ans(int max_el) {
+inline void fill_ans(int max_el) {
     memset(cnt, 0, sizeof(int) * MAXMEM);
 
     int x0 = first_x;
     int x1 = second_x;
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < n; ++i) {
         int xn = (1LL * a * x0 + 1LL * b * x1 + c) & MAXMASK;
         x0 = x1;
         x1 = xn;
@@ -107,7 +111,7 @@ void fill_ans(int max_el) {
     }
 }
 
-void stupid_solve() {
+inline void stupid_solve() {
     priority_queue<int, vi, greater<int>> q;
 
     int x0 = first_x;
@@ -137,7 +141,7 @@ void stupid_solve() {
     }
 }
 
-void very_smart_solve() {
+inline void very_smart_solve() {
     vi temp;
 
     int x0 = first_x;
@@ -171,29 +175,33 @@ void very_smart_solve() {
     }
 }
 
-void smart_solve() {
-    int max_element = find_max_element();
+inline void smart_solve() {
+    int max_element = find_max_element(MAXMASK);
 
-    assert(!is_cyclic);
-    // if (is_cyclic) {
-    //      very_smart_solve();
-    //      return;
-    // }
+    if (is_cyclic) {
+          very_smart_solve();
+          return;
+    }
 
     while (find_ < k) {
+        int prev_find = find_;
         fill_ans(max_element);
-        max_element -= MAXMEM;
+        if (find_ == prev_find) {
+            max_element = find_max_element(max_element - 1);
+        } else {
+            max_element -= MAXMEM;
+        }
     }
 }
 
 void solve() {
     cin >> n >> k >> first_x >> second_x >> a >> b >> c;
 
-    // if (n < 6 * MAXMEM) {
-    //     stupid_solve();
-    // } else {
+    if (n < 8 * MAXMEM) {
+        stupid_solve();
+    } else {
         smart_solve();
-    // }
+    }
 
     for (int i = 0; i < k; i++) {
         cout << ans[i] << ' ';
