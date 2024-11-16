@@ -2,3 +2,5 @@
 tasks/build
 tasks/in.txt
 tasks/out.txt
+tasks/build/outDebug
+tasks/build/top_k.o
