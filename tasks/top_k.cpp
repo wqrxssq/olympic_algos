@@ -61,7 +61,7 @@ const int MAXMEM = 1.5e6;
 const int MAXMASK = (1 << 31) - 1;
 int n, k, first_x, second_x, a, b, c;
 
-bool is_cyclic = false;
+bool is_cyclic;
 int find_;
 int cnt[MAXMEM];
 int ans[MAXK];
@@ -195,25 +195,56 @@ inline void smart_solve() {
 }
 
 void solve() {
-    cin >> n >> k >> first_x >> second_x >> a >> b >> c;
+    // cin >> n >> k >> first_x >> second_x >> a >> b >> c;
 
+    find_ = 0;
+    is_cyclic = false;
     if (n < 8 * MAXMEM) {
         stupid_solve();
     } else {
         smart_solve();
     }
 
-    for (int i = 0; i < k; i++) {
-        cout << ans[i] << ' ';
-    }
-    cout << '\n';
+    // for (int i = 0; i < k; i++) {
+    //     cout << ans[i] << ' ';
+    // }
+    // cout << '\n';
+}
+
+void gen_test() {
+    n = MAXN;
+    k = MAXK;
+
+    first_x = rnd() % MAXMASK;
+    second_x = rnd() % MAXMASK;
+    a = rnd() % MAXMASK;
+    b = rnd() % MAXMASK;
+    c = rnd() % MAXMASK;
 }
 
 int main() {
-    fast_input;
 #ifdef __APPLE__
     freopen("in.txt", "r", stdin);
     freopen("out.txt", "w", stdout);
 #endif
-    solve();
+
+    int t;
+    cin >> t;
+    while (t--) {
+        gen_test();
+
+        auto begin = std::chrono::steady_clock::now();
+
+        solve();
+
+        auto end = std::chrono::steady_clock::now();
+
+        auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
+        if (elapsed_ms > 1300ms) {
+            cout << n << ' ' << k << '\n';
+            cout << first_x << ' ' << second_x << ' ' << a << ' ' << b << ' ' << c << '\n';
+            break;
+        }
+        cerr << "The time: " << elapsed_ms.count() << " ms\n";
+    }
 }
