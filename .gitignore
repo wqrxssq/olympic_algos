@@ -1,2 +1,4 @@
 .vscode
 tasks/build
+tasks/in.txt
+tasks/out.txt
