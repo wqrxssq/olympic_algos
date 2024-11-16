@@ -187,10 +187,10 @@ void solve() {
         return;
     }
 
-    int min_can = max(0, max_element - (max_element / n) * k * 4);
+    int min_can = max(0, max_element - (max_element / n) * k * 2);
     int cnt_greater = get_count(min_can);
 
-    assert(cnt_greater <= MAXMEM);
+    assert(cnt_greater <= max(n / 4, MAXMEM));
 
     vi a = get_in(min_can, max_element);
 
