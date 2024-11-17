@@ -1,0 +1,7 @@
+1) x y 0 0 c - all c(ok)
+2) 0 0 a b 0 - all 0(ok)
+3) x y even even c - some uniq + all same(ok)
+4) x y 0 1 0 - all y(ok)
+5) x y 0 1 c - slowly increase (no)
+6) x y 1 0 0 - xyxy... seq (no)
+7) x y 1 0 c - xy hard seq (no)

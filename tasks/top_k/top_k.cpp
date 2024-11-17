@@ -57,7 +57,7 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 
 const int MAXN = 1e8;
 const int MAXK = 200000;
-const int MAXMEM = 1e6;
+const int MAXMEM = 1.8e6;
 const int MAXMASK = (1 << 31) - 1;
 int n, k, first_x, second_x, a, b, c;
 
@@ -172,6 +172,71 @@ void very_stupid_solve() {
     }
     cout << '\n';
 }
+ 
+void fill_ans(int max_el, int& find_) {
+    int cnt[MAXMEM] = {0};
+ 
+    int x0 = first_x;
+    int x1 = second_x;
+    for (int i = 0; i < n; i++) {
+        int xn = (1LL * a * x0 + 1LL * b * x1 + c) & MAXMASK;
+        x0 = x1;
+        x1 = xn;
+        if (xn <= max_el && max_el - xn < MAXMEM) {
+            ++cnt[max_el - xn];
+        }
+    }
+ 
+    for (int i = 0; i < MAXMEM; i++) {
+        for (int j = 0; j < cnt[i]; j++) {
+            if (find_ == k) {
+                return;
+            }
+            ans[find_++] = max_el - i;
+        }
+    }
+}
+
+void old_solve(int max_element) {
+    int find_ = 0;
+ 
+    while (find_ < k) {
+        int prev_find = find_;
+        fill_ans(max_element, find_);
+        if (find_ == prev_find) {
+            max_element = find_max_element(max_element - 1);
+        } else {
+            max_element -= MAXMEM;
+        }
+    }
+
+    for (int i = 0; i < k; i++) {
+        cout << ans[i] << ' ';
+    }
+    cout << '\n';
+}
+
+bool is_power_2(int c) {
+    return (c & (c - 1)) == 0;
+}
+
+void hand_solve() {
+    vi temp;
+    int x0 = first_x;
+    int x1 = second_x;
+    for (int i = 0; i < n; i++) {
+        int xn = (1LL * a * x0 + 1LL * b * x1 + c) & MAXMASK;
+        x0 = x1;
+        x1 = xn;
+        if (temp.size() == 0 || temp[0] != xn) {
+            temp.pb(xn);
+        } else {
+            break;
+        }
+    }
+
+    
+}
 
 void solve() {
     cin >> n >> k >> first_x >> second_x >> a >> b >> c;
@@ -188,31 +253,25 @@ void solve() {
     }
 
     int min_can = max(0, max_element - (max_element / n) * k * 2);
-    int cnt_greater = get_count(min_can);
 
-    assert(cnt_greater <= max(n / 4, MAXMEM));
+    if (a == 0 && b == 1 && is_power_2(c) && c >= 16) {
+        hand_solve();
+    }
+    if (a == 1 && b == 0) {
+        assert(false);
+    }
+    if ((a == 0 && b == 1 && c > 0) || (a == 1 && b == 0)) {
+        old_solve(max_element);
+        return;
+    }
 
     vi a = get_in(min_can, max_element);
+    assert(sz(a) < MAXMEM);
 
     sort(all(a));
     reverse(all(a));
     for (int i = 0; i < min(sz(a), k); i++) {
         ans[i] = a[i];
-    }
-
-    if (cnt_greater < k) {
-        int max_element2 = find_max_element(a.back() - 1);
-        int min_can2 = max(0, max_element2 - (max_element2 / n) * k * 10);
-
-        vi b = get_in(min_can2, max_element2);
-        sort(all(b));
-        reverse(all(b));
-
-        assert(sz(a) + sz(b) >= k);
-
-        for (int i = sz(a); i < k; i++) {
-            ans[i] = b[i - sz(b)];
-        }
     }
 
     for (int i = 0; i < k; i++) {
