@@ -56,41 +56,38 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
 const int MAXN = 52;
-const int MAXTRIES = 1e7;
+const int MAXITER = 1000;
 int n;
-int p[MAXN][MAXN];
-
-int calc(int pos, int iteration = 0) {
-    if (pos == n) {
-        return 1;
-    }
-    if (pos == n + 1 || iteration == 100) {
-        return 0;
-    }
-
-    int go = rnd() % 100;
-    for (int i = 0; i < n + 2; i++) {
-        if (go < p[pos][i]) {
-            return calc(i, iteration + 1);
-        }
-        go -= p[pos][i];
-    }
-}
+double p[MAXN][MAXN];
+double dp[MAXN][MAXITER];
 
 void solve() {
     cin >> n;
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n + 2; j++) {
             cin >> p[i][j];
+            p[i][j] /= 100;
         }
     }
 
-    int is_good = 0;
-    for (int i = 0; i < MAXTRIES; i++) {
-        is_good += calc(0);
+    dp[0][0] = 1;
+    for (int i = 1; i <= n; i++) {
+        dp[i][0] = 0;
     }
 
-    cout << (long double)is_good / MAXTRIES << '\n';
+    for (int k = 1; k < MAXITER; k++) {
+        for (int i = 0; i <= n; i++) {
+            for (int j = 0; j < n; j++) {
+                dp[i][k] += dp[j][k - 1] * p[j][i];
+            }
+        }
+    }
+
+    double ans = 0;
+    for (int i = 0; i < MAXITER; i++) {
+        ans += dp[n][i];
+    }
+    cout << ans << '\n';
 }
 
 int main() {
