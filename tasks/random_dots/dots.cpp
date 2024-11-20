@@ -58,39 +58,49 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 const unsigned int X = 1e8;
 const unsigned int A = 134775813;
 const unsigned int C = 1;
+const int MAXN = 1e5;
+int n;
+int a[MAXN << 1];
 const ll M = (1LL << 32);
 const unsigned int MAXSEED = 4294967295;
-unsigned int seed;
 
-void solve() {
-    unsigned int a1, a2;
-    cin >> a1 >> a2;
-    int c = 0;
-
-    int need_seed_l = (1LL * a1 * M) / X;
-    int need_seed_r = need_seed_l + 50;
-    cout << need_seed_l << '\n'; 
-
-    for (unsigned int s0 = 0; s0 <= MAXSEED; s0++) {
-        seed = s0;
-
+bool check(unsigned int seed) {
+    for (int i = 1; i < n * 2; i++) {
         seed = (A * seed + C);
         unsigned int x = (1LL * seed * X) / M;
-        
-        if (x == a1) {
-            cout << seed << ' ';
-            c = s0;
-            seed = (A * seed + C);
-            x = (1LL * seed * X) / M;
-            // if (x == a2) {
-            //     cout << s0 << ' ';
-            // }
+        if (x != a[i]) {
+            return false;
         }
-        if (s0 == MAXSEED) {
+    }
+    return true;
+}
+
+void solve() {
+    cin >> n;
+    for (int i = 0; i < n; i++) {
+        cin >> a[i << 1] >> a[i << 1 | 1];
+    }
+
+    unsigned int a1 = a[0];
+
+    unsigned int need_seed_l = (1LL * a1 * M) / X;
+    unsigned int need_seed_r = need_seed_l + 50;
+    // cout << need_seed_l << '\n';
+    if (need_seed_l > need_seed_r) {
+        need_seed_r = MAXSEED;
+    }
+    // assert(need_seed_l <= need_seed_r);
+
+    for (unsigned int l = need_seed_l; l <= need_seed_r; l++) {
+        if (check(l)) {
+            cout << "RAW\n";
+            return;
+        }
+        if (l == MAXSEED) {
             break;
         }
     }
-    cout << '\n';
+    cout << "SHUFFLED\n";
 }
 
 int main() {
