@@ -1,0 +1,1 @@
+(!x1 AND !x2 AND !x3) OR (!x1 AND x2 AND x3) OR (x1 AND !x2 AND x3) OR (x1 AND x2 AND !x3) 
