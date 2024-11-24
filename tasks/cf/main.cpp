@@ -55,78 +55,89 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define setpr(_x) cout << setprecision(_x) << fixed
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
-const int MAXN = 1e5;
-int n;
+struct node {
+    node *l = 0, *r = 0;
+    int key;
 
-map <string, int> converter_name_v;
-map<int, string> converter_v_name;
+    node(int x) : key(x) {}
 
-int p[MAXN];
-vi g[MAXN];
-
-int tin[MAXN];
-int tout[MAXN];
-int timer = 0;
-
-void dfs(int v, int pr = -1) {
-    tin[v] = timer++;
-    for (int u : g[v]) {
-        if (u != pr) {
-            dfs(u, v);
+    void add(int x) {
+        node* v = this;
+        while (v) {
+            if (x < v->key) {
+                if (!v->l) {
+                    v->l = new node(x);
+                    cout << "DONE\n";
+                    return;
+                } else {
+                    v = v->l;
+                }
+            } else if (x > v->key) {
+                if (!v->r) {
+                    v->r = new node(x);
+                    cout << "DONE\n";
+                    return;
+                } else {
+                    v = v->r;
+                }
+            } else {
+                cout << "ALREADY\n";
+                return;
+            }
         }
     }
-    tout[v] = timer;
-}
 
-bool is_ancestor(int v, int u) {
-    return tin[v] <= tin[u] && tout[v] >= tout[u];
-}
-
-int lca(int v, int u) {
-    while (!is_ancestor(v, u)) {
-        v = p[v];
+    bool search(int x) {
+        node* v = this;
+        while (v && v->key != x) {
+            if (x < v->key) {
+                v = v->l;
+            } else if (x > v->key) {
+                v = v->r;
+            }
+        }
+        return (v && v->key == x);
     }
-    return v;
-}
+
+    void print_tree(int deep = 0) {
+        if (l) {
+            l->print_tree(deep + 1);
+        }
+        for (int i = 0; i < deep; i++) {
+            cout << '.';
+        }
+        cout << key << '\n';
+        if (r) {
+            r->print_tree(deep + 1);
+        }
+    }
+};
+
+node* root;
 
 void solve() {
-    cin >> n;
-
-    memset(p, -1, sizeof(int) * n);
-
-    for (int i = 0; i < n - 1; i++) {
-        string v, pr;
-        cin >> v >> pr;
-        if (!converter_name_v.count(v)) {
-            converter_name_v[v] = sz(converter_name_v);
-            converter_v_name[converter_name_v[v]] = v;
+    string type;
+    while (cin >> type) {
+        if (type == "ADD") {
+            int x;
+            cin >> x;
+            if (!root) {
+                root = new node(x);
+                cout << "DONE\n";
+            } else {
+                root->add(x);
+            }
+        } else if (type == "SEARCH") {
+            int x;
+            cin >> x;
+            if (root->search(x)) {
+                cout << "YES\n";
+            } else {
+                cout << "NO\n";
+            }
+        } else {
+            root->print_tree();
         }
-        if (!converter_name_v.count(pr)) {
-            converter_name_v[pr] = sz(converter_name_v);
-            converter_v_name[converter_name_v[pr]] = pr;
-        }
-
-        g[converter_name_v[v]].pb(converter_name_v[pr]);
-        g[converter_name_v[pr]].pb(converter_name_v[v]);
-
-        p[converter_name_v[v]] = converter_name_v[pr];
-    }
-
-    for (int v = 0; v < n; v++) {
-        if (p[v] == -1) {
-            dfs(v);
-        }
-    }
-
-    // for (int v = 0; v < n; v++) {
-    //     cout << converter_v_name[v] << ' ' << tin[v] << ' ' << tout[v] << '\n';
-    // }
-
-    string l, r;
-    while (cin >> l >> r) {
-        int v = converter_name_v[l];
-        int u = converter_name_v[r];
-        cout << converter_v_name[lca(v, u)] << '\n';
     }
 }
 
@@ -138,6 +149,5 @@ int main() {
     freopen("out.txt", "w", stdout);
 #endif
 
-    setpr(9);
     solve();
 }
