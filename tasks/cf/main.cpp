@@ -59,19 +59,34 @@ const int MAXN = 1e5;
 int n;
 
 map <string, int> converter_name_v;
+map<int, string> converter_v_name;
 
 int p[MAXN];
 vi g[MAXN];
-int s[MAXN];
+
+int tin[MAXN];
+int tout[MAXN];
+int timer = 0;
 
 void dfs(int v, int pr = -1) {
-    s[v] = 1;
+    tin[v] = timer++;
     for (int u : g[v]) {
         if (u != pr) {
             dfs(u, v);
-            s[v] += s[u];
         }
     }
+    tout[v] = timer;
+}
+
+bool is_ancestor(int v, int u) {
+    return tin[v] <= tin[u] && tout[v] >= tout[u];
+}
+
+int lca(int v, int u) {
+    while (!is_ancestor(v, u)) {
+        v = p[v];
+    }
+    return v;
 }
 
 void solve() {
@@ -84,9 +99,11 @@ void solve() {
         cin >> v >> pr;
         if (!converter_name_v.count(v)) {
             converter_name_v[v] = sz(converter_name_v);
+            converter_v_name[converter_name_v[v]] = v;
         }
         if (!converter_name_v.count(pr)) {
             converter_name_v[pr] = sz(converter_name_v);
+            converter_v_name[converter_name_v[pr]] = pr;
         }
 
         g[converter_name_v[v]].pb(converter_name_v[pr]);
@@ -101,8 +118,15 @@ void solve() {
         }
     }
 
-    for (auto [str, v] : converter_name_v) {
-        cout << str << ' ' << s[v] - 1 << '\n';
+    // for (int v = 0; v < n; v++) {
+    //     cout << converter_v_name[v] << ' ' << tin[v] << ' ' << tout[v] << '\n';
+    // }
+
+    string l, r;
+    while (cin >> l >> r) {
+        int v = converter_name_v[l];
+        int u = converter_name_v[r];
+        cout << converter_v_name[lca(v, u)] << '\n';
     }
 }
 
