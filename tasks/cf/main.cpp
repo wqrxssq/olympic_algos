@@ -62,17 +62,14 @@ map <string, int> converter_name_v;
 
 int p[MAXN];
 vi g[MAXN];
-int h[MAXN];
+int s[MAXN];
 
 void dfs(int v, int pr = -1) {
-    if (pr == -1) {
-        h[v] = 0;
-    } else {
-        h[v] = h[pr] + 1; 
-    }
+    s[v] = 1;
     for (int u : g[v]) {
         if (u != pr) {
             dfs(u, v);
+            s[v] += s[u];
         }
     }
 }
@@ -80,7 +77,8 @@ void dfs(int v, int pr = -1) {
 void solve() {
     cin >> n;
 
-    memset(p, -1, sizeof(int) * MAXN);
+    memset(p, -1, sizeof(int) * n);
+
     for (int i = 0; i < n - 1; i++) {
         string v, pr;
         cin >> v >> pr;
@@ -103,8 +101,8 @@ void solve() {
         }
     }
 
-    for (auto [s, v] : converter_name_v) {
-        cout << s << ' ' << h[v] << '\n';
+    for (auto [str, v] : converter_name_v) {
+        cout << str << ' ' << s[v] - 1 << '\n';
     }
 }
 
