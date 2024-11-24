@@ -55,36 +55,38 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define setpr(_x) cout << setprecision(_x) << fixed
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
-const int MAXN = 1e5;
+const int MAXN = 2e5;
 int n;
 vi g[MAXN];
 int s[MAXN];
-int ans[MAXN];
+ll dp[MAXN];
 
-void dfs(int v, int pr = -1) {
+void dfs(int v, int p = -1) {
     s[v] = 1;
     for (int u : g[v]) {
-        if (u != pr) {
+        if (u != p) {
             dfs(u, v);
             s[v] += s[u];
+            dp[v] += dp[u] + s[u];
         }
     }
+    dp[v]++;
 }
 
 void solve() {
     cin >> n;
-    for (int i = 0; i < n - 1; i++) {
-        int v, u;
-        cin >> v >> u;
-        v--; u--;
-        g[v].pb(u);
-        g[u].pb(v);
+    for (int v = 1; v < n; v++) {
+        int p;
+        cin >> p;
+        p--;
+        g[v].pb(p);
+        g[p].pb(v);
     }
 
     dfs(0);
 
     for (int v = 0; v < n; v++) {
-        cout << s[v] << ' ';
+        cout << dp[v] << ' ';
     }
     cout << '\n';
 }
