@@ -55,40 +55,70 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define setpr(_x) cout << setprecision(_x) << fixed
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
-const int MAXN = 2e5;
+const int MAXN = 5e5;
 int n;
+int a[MAXN];
 vi g[MAXN];
-int s[MAXN];
-ll dp[MAXN];
+ll dp[MAXN][2];
 
-void dfs(int v, int p = -1) {
-    s[v] = 1;
+vi ans;
+void get_ans(int v, bool status, int p = -1) {
+    if (status) {
+        ans.pb(v + 1);
+    }
+
     for (int u : g[v]) {
-        if (u != p) {
-            dfs(u, v);
-            s[v] += s[u];
-            dp[v] += dp[u] + s[u];
+        if (u == p) {
+            continue;
+        }
+        if (status) {
+            get_ans(u, dp[u][1] < dp[u][0], v);
+        } else {
+            get_ans(u, 1, v);
         }
     }
-    dp[v]++;
+}
+
+void dfs(int v, int p = -1) {
+    for (int u : g[v]) {
+        if (u == p) {
+            continue;
+        }
+        dfs(u, v);
+        dp[v][0] += dp[u][1];
+        dp[v][1] += min(dp[u][0], dp[u][1]);
+    }
+    dp[v][1] += a[v];
 }
 
 void solve() {
     cin >> n;
-    for (int v = 1; v < n; v++) {
-        int p;
-        cin >> p;
-        p--;
-        g[v].pb(p);
-        g[p].pb(v);
+    for (int i = 0; i < n - 1; i++) {
+        int v, u;
+        cin >> v >> u;
+        v--; u--;
+        g[v].pb(u);
+        g[u].pb(v);
+    }
+
+    for (int i = 0; i < n; i++) {
+        cin >> a[i];
     }
 
     dfs(0);
 
-    for (int v = 0; v < n; v++) {
-        cout << dp[v] << ' ';
+    if (n == 1) {
+        cout << dp[0][1] << " 1\n1\n";
+    } else {
+        bool status = dp[0][0] > dp[0][1];
+        cout << min(dp[0][0], dp[0][1]) << ' ';
+        get_ans(0, status);
+        cout << sz(ans) << '\n';
+        for (int v : ans) {
+            cout << v << ' ';
+        }
+        cout << '\n';
     }
-    cout << '\n';
 }
 
 int main() {
