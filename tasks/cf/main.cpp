@@ -55,90 +55,38 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define setpr(_x) cout << setprecision(_x) << fixed
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
-struct node {
-    node *l = 0, *r = 0;
-    int key;
+const int MAXN = 1e5;
+int n;
+vi g[MAXN];
+int s[MAXN];
+int ans[MAXN];
 
-    node(int x) : key(x) {}
-
-    void add(int x) {
-        node* v = this;
-        while (v) {
-            if (x < v->key) {
-                if (!v->l) {
-                    v->l = new node(x);
-                    cout << "DONE\n";
-                    return;
-                } else {
-                    v = v->l;
-                }
-            } else if (x > v->key) {
-                if (!v->r) {
-                    v->r = new node(x);
-                    cout << "DONE\n";
-                    return;
-                } else {
-                    v = v->r;
-                }
-            } else {
-                cout << "ALREADY\n";
-                return;
-            }
+void dfs(int v, int pr = -1) {
+    s[v] = 1;
+    for (int u : g[v]) {
+        if (u != pr) {
+            dfs(u, v);
+            s[v] += s[u];
         }
     }
-
-    bool search(int x) {
-        node* v = this;
-        while (v && v->key != x) {
-            if (x < v->key) {
-                v = v->l;
-            } else if (x > v->key) {
-                v = v->r;
-            }
-        }
-        return (v && v->key == x);
-    }
-
-    void print_tree(int deep = 0) {
-        if (l) {
-            l->print_tree(deep + 1);
-        }
-        for (int i = 0; i < deep; i++) {
-            cout << '.';
-        }
-        cout << key << '\n';
-        if (r) {
-            r->print_tree(deep + 1);
-        }
-    }
-};
-
-node* root;
+}
 
 void solve() {
-    string type;
-    while (cin >> type) {
-        if (type == "ADD") {
-            int x;
-            cin >> x;
-            if (!root) {
-                root = new node(x);
-                cout << "DONE\n";
-            } else {
-                root->add(x);
-            }
-        } else if (type == "SEARCH") {
-            int x;
-            cin >> x;
-            if (root->search(x)) {
-                cout << "YES\n";
-            } else {
-                cout << "NO\n";
-            }
-        } else {
-            root->print_tree();
-        }
+    cin >> n;
+    for (int i = 0; i < n - 1; i++) {
+        int v, u;
+        cin >> v >> u;
+        v--; u--;
+        g[v].pb(u);
+        g[u].pb(v);
     }
+
+    dfs(0);
+
+    for (int v = 0; v < n; v++) {
+        cout << s[v] << ' ';
+    }
+    cout << '\n';
 }
 
 int main() {
