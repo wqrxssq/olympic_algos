@@ -63,6 +63,7 @@ bool is_acyclic;
 vi g[MAXN];
 int used[MAXN];
 
+vi comp;
 int d[MAXN];
 vi path;
 
@@ -116,13 +117,34 @@ bool find_path(int v, int u, int p = -1) {
     return false;
 }
 
+void get_comp(int v, int p = -1) {
+    for (int u : g[v]) {
+        if (u != p) {
+            get_comp(u, v);
+        }
+    }
+    comp.pb(v);
+}
+
 vi find_diametr(int v) {
+    comp.clear();
+    get_comp(v);
     bfs(v);
 
-    int u = max_element(d, d + n) - d;
+    int u = v;
+    for (int x : comp) {
+        if (d[x] > d[u]) {
+            u = x;
+        }
+    }
     bfs(u);
 
-    int w = max_element(d, d + n) - d;
+    int w = u;
+    for (int x : comp) {
+        if (d[x] > d[w]) {
+            w = x;
+        }
+    }
     path.clear();
     find_path(u, w);
     path.pb(u);
@@ -168,6 +190,7 @@ void solve() {
     }
 
     int ans = 1;
+    int cnt_other_comp = 0;
     int cnt_comp_1 = 0;
     int cnt_other = 2;
 
@@ -177,6 +200,7 @@ void solve() {
         } else {
             cnt_other++;
             if (!used[v]) {
+                cnt_other_comp++;
                 is_acyclic = true;
                 dfs(v);
                 if (!is_acyclic) {
@@ -188,6 +212,8 @@ void solve() {
             }
         }
     }
+
+    ans = (1LL * ans * fact[cnt_other_comp]) % mod;
 
     for (int i = 0; i < cnt_comp_1; i++) {
         ans = (1LL * ans * (cnt_other + i)) % mod;
