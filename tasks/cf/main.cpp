@@ -55,70 +55,145 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define setpr(_x) cout << setprecision(_x) << fixed
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
-const int MAXN = 5e5;
+const int MAXN = 1e6;
 int n;
-int a[MAXN];
+int mod;
+
+bool is_acyclic;
 vi g[MAXN];
-ll dp[MAXN][2];
+int used[MAXN];
 
-vi ans;
-void get_ans(int v, bool status, int p = -1) {
-    if (status) {
-        ans.pb(v + 1);
-    }
+int d[MAXN];
+vi path;
 
-    for (int u : g[v]) {
-        if (u == p) {
-            continue;
-        }
-        if (status) {
-            get_ans(u, dp[u][1] < dp[u][0], v);
-        } else {
-            get_ans(u, 1, v);
-        }
+int fact[MAXN + 1];
+
+void init() {
+    fact[0] = 1;
+    for (int i = 1; i <= MAXN; i++) {
+        fact[i] = (1LL * fact[i - 1] * i) % mod;
     }
 }
 
 void dfs(int v, int p = -1) {
+    used[v] = 1;
     for (int u : g[v]) {
         if (u == p) {
             continue;
         }
+        if (used[u]) {
+            is_acyclic = false;
+            return;
+        }
         dfs(u, v);
-        dp[v][0] += dp[u][1];
-        dp[v][1] += min(dp[u][0], dp[u][1]);
     }
-    dp[v][1] += a[v];
+}
+
+void bfs(int v, int p = -1) {
+    d[v] = (p == -1 ? 0 : d[p] + 1);
+    for (int u : g[v]) {
+        if (u == p) {
+            continue;
+        }
+        bfs(u, v);
+    }
+}
+
+
+bool find_path(int v, int u, int p = -1) {
+    if (v == u) {
+        return true;
+    }
+    for (int w : g[v]) {
+        if (w == p) {
+            continue;
+        }
+        if (find_path(w, u, v)) {
+            path.pb(w);
+            return true;
+        }
+    }
+    return false;
+}
+
+vi find_diametr(int v) {
+    bfs(v);
+
+    int u = max_element(d, d + n) - d;
+    bfs(u);
+
+    int w = max_element(d, d + n) - d;
+    path.clear();
+    find_path(u, w);
+    path.pb(u);
+    return path;
+}
+
+int calc(vi& diametr) {
+    int ans = 1;
+    for (int i = 1; i < sz(diametr) - 1; i++) {
+        int cnt = 0;
+        for (int u : g[diametr[i]]) {
+            if (u == diametr[0] || u == diametr.back()) {
+                cnt++;
+            } else if (u != diametr[i - 1] && u != diametr[i + 1]) {
+                if (sz(g[u]) != 1) {
+                    ans = 0;
+                }
+                cnt++;
+            }
+        }
+        ans = (1LL * ans * fact[cnt]) % mod;
+    }
+    if (sz(diametr) <= 3) {
+        return ans;
+    } else {
+        return (ans * 2) % mod;
+    }
 }
 
 void solve() {
-    cin >> n;
-    for (int i = 0; i < n - 1; i++) {
+    int m;
+    cin >> n >> m >> mod;
+
+    init();
+
+    for (int i = 0; i < m; i++) {
         int v, u;
         cin >> v >> u;
-        v--; u--;
+        v--;
+        u--;
         g[v].pb(u);
         g[u].pb(v);
     }
 
-    for (int i = 0; i < n; i++) {
-        cin >> a[i];
-    }
+    int ans = 1;
+    int cnt_comp_1 = 0;
+    int cnt_other = 2;
 
-    dfs(0);
-
-    if (n == 1) {
-        cout << dp[0][1] << " 1\n1\n";
-    } else {
-        bool status = dp[0][0] > dp[0][1];
-        cout << min(dp[0][0], dp[0][1]) << ' ';
-        get_ans(0, status);
-        cout << sz(ans) << '\n';
-        for (int v : ans) {
-            cout << v << ' ';
+    for (int v = 0; v < n; v++) {
+        if (sz(g[v]) == 0) {
+            cnt_comp_1++;
+        } else {
+            cnt_other++;
+            if (!used[v]) {
+                is_acyclic = true;
+                dfs(v);
+                if (!is_acyclic) {
+                    ans = 0;
+                    break;
+                }
+                vi diametr = find_diametr(v);
+                ans = (1LL * calc(diametr) * 2 * ans) % mod;
+            }
         }
-        cout << '\n';
     }
+
+    for (int i = 0; i < cnt_comp_1; i++) {
+        ans = (1LL * ans * (cnt_other + i)) % mod;
+    }
+
+    cout << ans << '\n';
 }
 
 int main() {
