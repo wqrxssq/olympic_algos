@@ -60,6 +60,67 @@ int n;
 int used[MAXN];
 set<pii> e;
 vi g[MAXN];
+int dp[MAXN][2];
+
+void get_ans(int v, vi& ans, bool status, int p = -1) {
+    if (status) {
+        ans.pb(v);
+    }
+
+    for (int u : g[v]) {
+        if (u == p) {
+            continue;
+        }
+        if (status) {
+            get_ans(u, ans, dp[u][1] < dp[u][0], v);
+        } else {
+            get_ans(u, ans, 1, v);
+        }
+    }
+}
+
+void calc_dp(int v, int p = -1) {
+    used[v] = 1;
+    for (int u : g[v]) {
+        if (u == p) {
+            continue;
+        }
+        calc_dp(u, v);
+        dp[v][0] += dp[u][1];
+        dp[v][1] += min(dp[u][0], dp[u][1]);
+    }
+    dp[v][1]++;
+}
+
+bool find_cycle(int v, int p = -1) {
+    used[v] = 1;
+    for (int u : g[v]) {
+        if (u == p) {
+            continue;
+        }
+        if (used[u]) {
+            return true;
+        }
+        bool is_cycle = find_cycle(u, v);
+        if (is_cycle) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool check_is_acyclic() {
+    memset(used, 0, sizeof(int) * n);
+    for (int v = 0; v < n; v++) {
+        if (!used[v]) {
+            bool is_cycle = find_cycle(v);
+            if (is_cycle) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
 
 // цвет 0 - не рассмотрели
 // цвет 1 - лежит в независимом мн-ве
@@ -100,6 +161,7 @@ void init() {
 }
 
 vi guaranteed_solve() {
+    memset(used, 0, sizeof(int) * n);
     while (!e.empty()) {
         auto [v, u] = *e.begin();
         used[v] = 1;
@@ -149,6 +211,20 @@ vi fast_solve(int is_random) {
     return res;
 }
 
+vi solve_tree() {
+    memset(used, 0, sizeof(int) * n);
+
+    vi ans;
+    for (int v = 0; v < n; v++) {
+        if (!used[v]) {
+            calc_dp(v);
+            get_ans(v, ans, dp[0][0] > dp[0][1]);
+        }
+    }
+
+    return ans;
+}
+
 void print_ans(vi ans) {
     cout << sz(ans) << '\n';
     for (int v : ans) {
@@ -159,20 +235,24 @@ void print_ans(vi ans) {
 
 void solve() {
     init();
-    vi ans1 = guaranteed_solve();
 
-    vi ans2 = fast_solve(0);
-    for (int i = 0; i < (MAXN / n) * 10; i++) {
-        vi ans3 = fast_solve(1);
-        if (sz(ans3) < sz(ans2)) {
-            swap(ans2, ans3);
-        }
-    }
-
-    if (sz(ans1) <= sz(ans2)) {
-        print_ans(ans1);
+    if (check_is_acyclic()) {
+        vi ans = solve_tree();
+        print_ans(ans);
     } else {
-        print_ans(ans2);
+        vi ans1 = guaranteed_solve();
+        vi ans2 = fast_solve(0);
+        for (int i = 0; i < (MAXN / n) * 10; i++) {
+            vi ans3 = fast_solve(1);
+            if (sz(ans3) < sz(ans2)) {
+                swap(ans2, ans3);
+            }
+        }
+        if (sz(ans1) <= sz(ans2)) {
+            print_ans(ans1);
+        } else {
+            print_ans(ans2);
+        }
     }
 }
 
