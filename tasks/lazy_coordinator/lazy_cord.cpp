@@ -55,33 +55,58 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define setpr(_x) cout << setprecision(_x) << fixed
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
+struct event {
+    char type;
+    int t;
+};
+
 const int MAXN = 1e5;
 int n;
 
-double p[MAXN];
+event e[MAXN << 1];
+
+double a[MAXN];
+int t[MAXN];
+
 double ans[MAXN];
 
 void solve() {
     cin >> n;
 
-    fill(p, p + n, 1);
-
-    int unlocked = 0;
+    int l = 0;
+    int r = 0;
     int balance = 0;
     for (int i = 0; i < 2 * n; i++) {
         char c;
-        int t;
-        cin >> c >> t;
+        int time;
+        cin >> c >> time;
+        e[i] = {c, time};
+
         if (c == '+') {
-            ans[unlocked++] -= t;
+            ans[l++] -= time;
             ++balance;
         } else {
-            for (int j = 0; j < unlocked; j++) {
-                double temp_prob = p[j] / balance;
-                ans[j] += (double)t * temp_prob;
-                p[j] -= temp_prob;
-            }
+            a[r] = (double)1 / balance;
+            t[r++] = time;
             --balance;
+        }
+    }
+
+    double cur_ans = a[0] * t[0];
+    double prev_poly = 1;
+    for (int i = 1; i < n; i++) {
+        prev_poly = prev_poly * (1 - a[i - 1]);
+        cur_ans += prev_poly * t[i] * a[i];
+    }
+    ans[0] += cur_ans;
+
+    l = 0;
+    r = 0;
+    for (int i = 1; i < 2 * n; i++) {
+        if (e[i].type == '+') {
+            ans[++l] += cur_ans; 
+        } else {
+            cur_ans = (cur_ans - a[r] * t[r++]) / (1 - a[r++]);
         }
     }
 
