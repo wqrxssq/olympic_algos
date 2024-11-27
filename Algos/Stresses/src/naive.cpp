@@ -1,3 +1,5 @@
+#pragma GCC optimize("O3,unroll-loops")
+
 #include <math.h>
 
 #include <algorithm>
@@ -53,54 +55,43 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define setpr(_x) cout << setprecision(_x) << fixed
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
-const int MAXN = 2e5;
+const int MAXN = 1e5;
 int n;
-int H;
 
-vi order;
-int h[MAXN];
-int w[MAXN];
+long double p[MAXN];
+long double ans[MAXN];
 
 void solve() {
-    cin >> n >> H;
-    for (int i = 0; i < n; i++) {
-        cin >> h[i];
-    }
-    for (int i = 0; i < n; i++) {
-        cin >> w[i];
-    }
+    cin >> n;
 
-    order.resize(n);
-    iota(all(order), 0);
+    fill(p, p + n, 1);
 
-    sort(all(order), [&](int a, int b) {
-        return h[a] < h[b] || (h[a] == h[b] && w[a] < w[b]);
-    });
-
-    int ans = INF;
-    for (int mask = 0; mask < (1 << n); mask++) {
-        int cur_w = 0;
-        vi used;
-        for (int i = 0; i < n; i++) {
-            if (mask & (1 << i)) {
-                used.pb(order[i]);
-                cur_w += w[order[i]];
+    int unlocked = 0;
+    int balance = 0;
+    for (int i = 0; i < 2 * n; i++) {
+        char c;
+        int t;
+        cin >> c >> t;
+        if (c == '+') {
+            ans[unlocked++] -= t;
+            ++balance;
+        } else {
+            for (int j = 0; j < unlocked; j++) {
+                long double temp_prob = p[j] / balance;
+                ans[j] += (long double)t * temp_prob;
+                p[j] -= temp_prob;
             }
-        }
-
-        int cur_ans = 0;
-        for (int i = 0; i + 1 < sz(used); i++) {
-            cur_ans = max(h[used[i + 1]] - h[used[i]], cur_ans);
-        }
-        if (cur_w >= H) {
-            ans = min(ans, cur_ans);
+            --balance;
         }
     }
 
-    cout << ans << '\n';
+    for (int i = 0; i < n; i++) {
+        cout << ans[i] << '\n';
+    }
 }
 
 int main() {
     fast_input;
+    setpr(9);
     solve();
 }

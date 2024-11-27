@@ -55,6 +55,7 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define setpr(_x) cout << setprecision(_x) << fixed
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
+const int C = 50;
 struct event {
     char type;
     int t;
@@ -65,10 +66,20 @@ int n;
 
 event e[MAXN << 1];
 
-double a[MAXN];
+int a[MAXN];
 int t[MAXN];
 
-double ans[MAXN];
+long double ans[MAXN];
+
+long double recalc_cur_ans(int i, int r_begin, int r_end) {
+    long double cur_ans = (long double)t[r_begin] / a[r_begin];
+    long double prev_poly = 1;
+    for (int j = r_begin + 1; j < r_end; j++) {
+        prev_poly = prev_poly * ((long double)(a[j - 1] - 1) / a[j - 1]);
+        cur_ans += prev_poly * t[j] / a[j];
+    }
+    return cur_ans;
+}
 
 void solve() {
     cin >> n;
@@ -87,23 +98,26 @@ void solve() {
             ans[l_end++] -= time;
             ++balance;
         } else {
-            a[r_end] = (double)1 / balance;
+            a[r_end] = balance;
             t[r_end++] = time;
             --balance;
             if (balance == 0) {
-                double cur_ans = a[r_begin] * t[r_begin];
-                double prev_poly = 1;
+                long double cur_ans = (long double)t[r_begin] / a[r_begin];
+                long double prev_poly = 1;
                 for (int j = r_begin + 1; j < r_end; j++) {
-                    prev_poly = prev_poly * (1 - a[j - 1]);
-                    cur_ans += prev_poly * t[j] * a[j];
+                    prev_poly = prev_poly * ((long double)(a[j - 1] - 1) / a[j - 1]);
+                    cur_ans += prev_poly * t[j] / a[j];
                 }
                 ans[l_begin] += cur_ans;
 
                 for (int j = begin_i + 1; j < i; j++) {
+                    if (j % C == 0) {
+                        cur_ans = recalc_cur_ans(j, r_begin, r_end);
+                    }
                     if (e[j].type == '+') {
                         ans[++l_begin] += cur_ans; 
                     } else {
-                        cur_ans = (cur_ans - a[r_begin] * t[r_begin]) / (1 - a[r_begin]);
+                        cur_ans = (cur_ans * a[r_begin] - t[r_begin]) / (a[r_begin] - 1);
                         r_begin++;
                     }
                 }

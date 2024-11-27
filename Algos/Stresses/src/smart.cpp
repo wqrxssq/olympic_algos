@@ -1,3 +1,5 @@
+#pragma GCC optimize("O3,unroll-loops")
+
 #include <math.h>
 
 #include <algorithm>
@@ -53,83 +55,72 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define setpr(_x) cout << setprecision(_x) << fixed
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
-const int MAXN = 2e5;
+struct event {
+    char type;
+    int t;
+};
+
+const int MAXN = 1e5;
 int n;
-int H;
 
-vi order;
-int d[MAXN];
-int t[MAXN << 2];
-int h[MAXN];
-int w[MAXN];
+event e[MAXN << 1];
 
-void build(int tl, int tr, int v) {
-    if (tl == tr) {
-        t[v] = d[tl];
-    } else {
-        int tm = (tl + tr) >> 1;
-        build(tl, tm, v << 1);
-        build(tm + 1, tr, v << 1 | 1);
-        t[v] = max(t[v << 1], t[v << 1 | 1]);
-    }
-}
+long double a[MAXN];
+int t[MAXN];
 
-int query(int tl, int tr, int v, int l, int r) {
-    if (l > r) {
-        return 0;
-    }
-    if (tl == l && tr == r) {
-        return t[v];
-    }
-    int tm = (tl + tr) >> 1;
-    return max(query(tl, tm, v << 1, l, min(tm, r)), query(tm + 1, tr, v << 1 | 1, max(l, tm + 1), r));
-}
+long double ans[MAXN];
 
 void solve() {
-    cin >> n >> H;
-    for (int i = 0; i < n; i++) {
-        cin >> h[i];
-    }
-    for (int i = 0; i < n; i++) {
-        cin >> w[i];
-    }
+    cin >> n;
 
-    if (n == 1) {
-        cout << 0 << '\n';
-        return;
-    }
+    int l_begin = 0, l_end = 0;
+    int r_begin = 0, r_end = 0;
+    int begin_i = 0;
+    int balance = 0;
+    for (int i = 0; i < 2 * n; i++) {
+        char c;
+        int time;
+        cin >> c >> time;
+        e[i] = {c, time};
 
-    order.resize(n);
-    iota(all(order), 0);
+        if (c == '+') {
+            ans[l_end++] -= time;
+            ++balance;
+        } else {
+            a[r_end] = (long double)1 / balance;
+            t[r_end++] = time;
+            --balance;
+            if (balance == 0) {
+                long double cur_ans = a[r_begin] * t[r_begin];
+                long double prev_poly = 1;
+                for (int j = r_begin + 1; j < r_end; j++) {
+                    prev_poly = prev_poly * (1 - a[j - 1]);
+                    cur_ans += prev_poly * t[j] * a[j];
+                }
+                ans[l_begin] += cur_ans;
 
-    sort(all(order), [&](int a, int b) {
-        return h[a] < h[b] || (h[a] == h[b] && w[a] < w[b]);
-    });
-
-    for (int i = 0; i + 1 < n; i++) {
-        d[i] = h[order[i + 1]] - h[order[i]];
-    }
-    build(0, n - 2, 1);
-
-    int ans = INF;
-    int cur_w = 0;
-    for (int l = 0, r = 0; l < n; ++l) {
-        while (r < n && cur_w < H) {
-            cur_w += w[order[r]];
-            ++r;
+                for (int j = begin_i + 1; j < i; j++) {
+                    if (e[j].type == '+') {
+                        ans[++l_begin] += cur_ans; 
+                    } else {
+                        cur_ans = (cur_ans - a[r_begin] * t[r_begin]) / (1 - a[r_begin]);
+                        r_begin++;
+                    }
+                }
+                l_begin = l_end;
+                r_begin = r_end;
+                begin_i = i + 1;
+            }
         }
-
-        if (cur_w >= H && query(0, n - 2, 1, l, r - 2) < ans) {
-            ans = query(0, n - 2, 1, l, r - 2);
-        }
-
-        cur_w -= w[order[l]];
     }
 
-    cout << ans << '\n';
+    for (int i = 0; i < n; i++) {
+        cout << ans[i] << '\n';
+    }
 }
 
 int main() {
     fast_input;
+    setpr(9);
     solve();
 }

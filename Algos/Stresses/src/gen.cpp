@@ -20,32 +20,37 @@ vector<int> generate_vector(int n, int l, int r) {
     return res;
 }
 
-int sum(vector<int>& a) {
-    int s = 0;
-    for (int val : a) {
-        s += val;
+bool not_correct(vector<int>& a) {
+    int sum = 0;
+    for (auto x : a) {
+        if (x) {
+            sum++;
+        } else {
+            sum--;
+            if (sum < 0) {
+                return true;
+            }
+        }
     }
-    return s;
+    return false;
 }
 
 int main() {
-    int n = rnd() % 23 + 1; // [1, 23]
-    int H = rnd() % 100 + 1; // [1, 100]
-    cout << n << ' ' << H << '\n';
+    int n = rnd() % 500 + 1;
+    cout << n << '\n';
 
-    vector<int> h, w;
-    h = generate_vector(n, 1, 100);
+    vector<int> a(2 * n);
+    for (int i = 0; i < n; i++) {
+        a[i * 2] = 0;
+        a[i * 2 + 1] = 1; 
+    }
     do {
-        w = generate_vector(n, 1, 100);
-    } while (sum(w) < H);
+        shuffle(a.begin(), a.end(), rnd);
+    } while (not_correct(a));
 
-    for (int hi : h) {
-        cout << hi << ' ';
+    int prev = 0;
+    for (int i = 0; i < 2 * n; i++) {
+        prev += rnd() % 1000 + 1;
+        cout << (a[i] == 1 ? "+ " : "- ") << prev << '\n';
     }
-    cout << '\n';
-
-    for (int wi : w) {
-        cout << wi << ' ';
-    }
-    cout << '\n';
 }

@@ -1,9 +1,11 @@
 #include <iostream>
 #include <vector>
+#include <math.h>
 #include <fstream>
 
 using namespace std;
 
+static const double EPS = 1e6;
 static const int PIECES = 5;
 
 void execute(string s) {
@@ -73,16 +75,18 @@ int main(int argc, char ** argv) {
         ifstream smart("tests/out_smart.txt");
         ifstream stupid("tests/out_stupid.txt");
 
-        /* int t;
-        input >> t; */
+        int n;
+        input >> n;
 
-        int ans1, ans2;
-        stupid >> ans1;
-        smart >> ans2;
+        for (int i = 0; i < n; i++) {
+            double ans1, ans2;
+            stupid >> ans1;
+            smart >> ans2;
 
-        if (ans1 != ans2) {
-            cerr << "I have found WA on test " << t << ":( SAD";
-            return 1;
+            if (fabs(ans1 - ans2) > EPS) {
+                cerr << "I have found WA on test " << t << ":( SAD";
+                return 1;
+            }
         }
     }
     cerr << "Your programm is correct:3\n";
