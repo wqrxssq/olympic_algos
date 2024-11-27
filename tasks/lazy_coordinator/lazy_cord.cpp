@@ -73,8 +73,9 @@ double ans[MAXN];
 void solve() {
     cin >> n;
 
-    int l = 0;
-    int r = 0;
+    int l_begin = 0, l_end = 0;
+    int r_begin = 0, r_end = 0;
+    int begin_i = 0;
     int balance = 0;
     for (int i = 0; i < 2 * n; i++) {
         char c;
@@ -83,30 +84,33 @@ void solve() {
         e[i] = {c, time};
 
         if (c == '+') {
-            ans[l++] -= time;
+            ans[l_end++] -= time;
             ++balance;
         } else {
-            a[r] = (double)1 / balance;
-            t[r++] = time;
+            a[r_end] = (double)1 / balance;
+            t[r_end++] = time;
             --balance;
-        }
-    }
+            if (balance == 0) {
+                double cur_ans = a[r_begin] * t[r_begin];
+                double prev_poly = 1;
+                for (int j = r_begin + 1; j < r_end; j++) {
+                    prev_poly = prev_poly * (1 - a[j - 1]);
+                    cur_ans += prev_poly * t[j] * a[j];
+                }
+                ans[l_begin] += cur_ans;
 
-    double cur_ans = a[0] * t[0];
-    double prev_poly = 1;
-    for (int i = 1; i < n; i++) {
-        prev_poly = prev_poly * (1 - a[i - 1]);
-        cur_ans += prev_poly * t[i] * a[i];
-    }
-    ans[0] += cur_ans;
-
-    l = 0;
-    r = 0;
-    for (int i = 1; i < 2 * n; i++) {
-        if (e[i].type == '+') {
-            ans[++l] += cur_ans; 
-        } else {
-            cur_ans = (cur_ans - a[r] * t[r++]) / (1 - a[r++]);
+                for (int j = begin_i + 1; j < i; j++) {
+                    if (e[j].type == '+') {
+                        ans[++l_begin] += cur_ans; 
+                    } else {
+                        cur_ans = (cur_ans - a[r_begin] * t[r_begin]) / (1 - a[r_begin]);
+                        r_begin++;
+                    }
+                }
+                l_begin = l_end;
+                r_begin = r_end;
+                begin_i = i + 1;
+            }
         }
     }
 
