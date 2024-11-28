@@ -57,222 +57,96 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 
 const int MAXN = 1e8;
 const int MAXK = 200000;
-const int MAXMEM = 1.8e6;
+const int MAXMEM = 1e6;
 const int MAXMASK = (1 << 31) - 1;
-int n, k, first_x, second_x, a, b, c;
+const int INTERVAL = 2148;
 
-bool is_cyclic = false;
+int cnt[MAXMEM];
+int n, k, first_x, second_x, a, b, c;
 int ans[MAXK];
 
-int find_max_element(int max_element) {
-    int x0 = first_x;
-    int x1 = second_x;
-    int max_el = 0;
-    for (int i = 0; i < n; i++) {
-        int xn = (1LL * a * x0 + 1LL * b * x1 + c) & MAXMASK;
-
-        if (xn == x0 && xn == x1) {
-            is_cyclic = true;
-        }
-
-        x0 = x1;
-        x1 = xn;
-        if (xn <= max_element) {
-            max_el = max(max_el, xn);
-        }
-    }
-
-    return max_el;
-}
-
-int get_count(int min_can) {
-    int cnt = 0;
-    int x0 = first_x;
-    int x1 = second_x;
-    int max_el = 0;
-    for (int i = 0; i < n; i++) {
-        int xn = (1LL * a * x0 + 1LL * b * x1 + c) & MAXMASK;
-        x0 = x1;
-        x1 = xn;
-        cnt += (xn >= min_can);
-    }
-    return cnt;
-}
-
-vi get_in(int l, int r) {
-    vi temp;
-
-    int x0 = first_x;
-    int x1 = second_x;
-    int max_el = 0;
-    for (int i = 0; i < n; i++) {
-        int xn = (1LL * a * x0 + 1LL * b * x1 + c) & MAXMASK;
-        x0 = x1;
-        x1 = xn;
-        if (xn <= r && xn >= l) {
-            temp.pb(xn);
-        }
-    }
-
-    return temp;
-}
-
-void very_smart_solve() {
-    vi temp;
-
-    int x0 = first_x;
-    int x1 = second_x;
-
-    int cyclic_el = 0;
-    for (int i = 0; i < n; i++) {
-        int xn = (1LL * a * x0 + 1LL * b * x1 + c) & MAXMASK;
-
-        if (xn == x0 && xn == x1) {
-            cyclic_el = xn;
-            break;
-        }
-
-        x0 = x1;
-        x1 = xn;
-        temp.pb(xn);
-    }
-
-    sort(all(temp));
-    reverse(all(temp));
-
-    int find_ = 0;
-    for (int i = 0; i < temp.size(); i++) {
-        if (temp[i] <= cyclic_el) {
-            break;
-        }
-        cout << temp[i] << ' ';
-        find_++;
-    }
-    while (find_ < k) {
-        cout << cyclic_el << ' ';
-        find_++;
-    }
-    cout << '\n';
-}
-
-void very_stupid_solve() {
-    vi temp;
+void get_cnt() {
     int x0 = first_x;
     int x1 = second_x;
     for (int i = 0; i < n; i++) {
         int xn = (1LL * a * x0 + 1LL * b * x1 + c) & MAXMASK;
+
+        ++cnt[xn / INTERVAL];
+
         x0 = x1;
         x1 = xn;
-        temp.pb(xn);
     }
-    sort(all(temp));
-    reverse(all(temp));
-    for (int i = 0; i < k; i++) {
-        cout << temp[i] << ' ';
-    }
-    cout << '\n';
 }
- 
-void fill_ans(int max_el, int& find_) {
-    int cnt[MAXMEM] = {0};
- 
+
+int get_some_ans(unsigned int L) {
+    vi el;
+
     int x0 = first_x;
     int x1 = second_x;
     for (int i = 0; i < n; i++) {
         int xn = (1LL * a * x0 + 1LL * b * x1 + c) & MAXMASK;
+
+        if ((unsigned int)xn >= L) {
+            el.pb(xn);
+        }
+
         x0 = x1;
         x1 = xn;
-        if (xn <= max_el && max_el - xn < MAXMEM) {
-            ++cnt[max_el - xn];
-        }
     }
- 
-    for (int i = 0; i < MAXMEM; i++) {
-        for (int j = 0; j < cnt[i]; j++) {
-            if (find_ == k) {
-                return;
-            }
-            ans[find_++] = max_el - i;
-        }
+
+    sort(rall(el));
+    for (int i = 0; i < sz(el); i++) {
+        ans[i] = el[i];
     }
+    return sz(el);
 }
 
-void old_solve(int max_element) {
-    int find_ = 0;
- 
-    while (find_ < k) {
-        int prev_find = find_;
-        fill_ans(max_element, find_);
-        if (find_ == prev_find) {
-            max_element = find_max_element(max_element - 1);
-        } else {
-            max_element -= MAXMEM;
-        }
-    }
+void get_other_in_busket(int id_busket, int l) {
+    int new_cnt[INTERVAL] = {0};
+    unsigned int L = 1LL * id_busket * INTERVAL;
+    unsigned int R = 1LL * (id_busket + 1) * INTERVAL;
 
-    for (int i = 0; i < k; i++) {
-        cout << ans[i] << ' ';
-    }
-    cout << '\n';
-}
-
-bool is_power_2(int c) {
-    return (c & (c - 1)) == 0;
-}
-
-void hand_solve() {
-    vi temp;
     int x0 = first_x;
     int x1 = second_x;
     for (int i = 0; i < n; i++) {
         int xn = (1LL * a * x0 + 1LL * b * x1 + c) & MAXMASK;
+
+        if ((unsigned int)xn >= L && (unsigned int)xn < R) {
+            ++new_cnt[xn - L];
+        }
+
         x0 = x1;
         x1 = xn;
-        if (temp.size() == 0 || temp[0] != xn) {
-            temp.pb(xn);
-        } else {
-            break;
-        }
     }
 
-    
+    for (int i = INTERVAL - 1; l < k; i--) {
+        for (int j = 0; j < new_cnt[i] && l < k; j++) {
+            ans[l++] = i + L;
+        }
+    }
 }
 
 void solve() {
     cin >> n >> k >> first_x >> second_x >> a >> b >> c;
 
-    int max_element = find_max_element(MAXMASK);
+    // if (n <= MAXMEM) {
+    //     very_stupid_solve();
+    //     return;
+    // }
 
-    if (is_cyclic) {
-        very_smart_solve();
-        return;
-    }
-    if (n <= MAXMEM) {
-        very_stupid_solve();
-        return;
-    }
-
-    int min_can = max(0, max_element - (max_element / n) * k * 2);
-
-    if (a == 0 && b == 1 && is_power_2(c) && c >= 16) {
-        hand_solve();
-    }
-    if (a == 1 && b == 0) {
-        assert(false);
-    }
-    if ((a == 0 && b == 1 && c > 0) || (a == 1 && b == 0)) {
-        old_solve(max_element);
-        return;
+    get_cnt();
+    int ind_min_busket = -1;
+    int need = k;
+    for (int i = MAXMEM - 1; need > 0; i--) {
+        need -= cnt[i];
+        if (need <= 0) {
+            ind_min_busket = i;
+        }
     }
 
-    vi a = get_in(min_can, max_element);
-    assert(sz(a) < MAXMEM);
-
-    sort(all(a));
-    reverse(all(a));
-    for (int i = 0; i < min(sz(a), k); i++) {
-        ans[i] = a[i];
-    }
+    unsigned int L = 1LL * (ind_min_busket + 1) * INTERVAL;
+    int cnt_gettet = get_some_ans(L);
+    get_other_in_busket(ind_min_busket, cnt_gettet);
 
     for (int i = 0; i < k; i++) {
         cout << ans[i] << ' ';
