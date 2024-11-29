@@ -55,171 +55,56 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define setpr(_x) cout << setprecision(_x) << fixed
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
-const int MAXN = 1e6;
-int n;
-int mod;
-
-bool is_acyclic;
-vi g[MAXN];
-int used[MAXN];
-
-vi comp;
-int d[MAXN];
-vi path;
-
-int fact[MAXN + 1];
-
-void init() {
-    fact[0] = 1;
-    for (int i = 1; i <= MAXN; i++) {
-        fact[i] = (1LL * fact[i - 1] * i) % mod;
+vi operator *(vi a, vi b) {
+    vi res(sz(a));
+    for (int i = 0; i < sz(a); i++) {
+        res[i] = a[b[i]];
     }
+    return res;
 }
 
-void dfs(int v, int p = -1) {
-    used[v] = 1;
-    for (int u : g[v]) {
-        if (u == p) {
-            continue;
-        }
-        if (used[u]) {
-            is_acyclic = false;
-            return;
-        }
-        dfs(u, v);
+vi pow(vi a, int n) {
+    vi res = a;
+    for (int i = 1; i < n; i++) {
+        res = res * a;
     }
+    return res;
 }
 
-void bfs(int v, int p = -1) {
-    d[v] = (p == -1 ? 0 : d[p] + 1);
-    for (int u : g[v]) {
-        if (u == p) {
-            continue;
-        }
-        bfs(u, v);
+vi rev(vi a) {
+    vi res(sz(a));
+    for (int i = 0; i < sz(a); i++) {
+        res[a[i]] = i;
     }
+    return res;
 }
 
-
-bool find_path(int v, int u, int p = -1) {
-    if (v == u) {
-        return true;
-    }
-    for (int w : g[v]) {
-        if (w == p) {
-            continue;
-        }
-        if (find_path(w, u, v)) {
-            path.pb(w);
-            return true;
-        }
-    }
-    return false;
-}
-
-void get_comp(int v, int p = -1) {
-    for (int u : g[v]) {
-        if (u != p) {
-            get_comp(u, v);
-        }
-    }
-    comp.pb(v);
-}
-
-vi find_diametr(int v) {
-    comp.clear();
-    get_comp(v);
-    bfs(v);
-
-    int u = v;
-    for (int x : comp) {
-        if (d[x] > d[u]) {
-            u = x;
-        }
-    }
-    bfs(u);
-
-    int w = u;
-    for (int x : comp) {
-        if (d[x] > d[w]) {
-            w = x;
-        }
-    }
-    path.clear();
-    find_path(u, w);
-    path.pb(u);
-    return path;
-}
-
-int calc(vi& diametr) {
-    int ans = 1;
-    for (int i = 1; i < sz(diametr) - 1; i++) {
-        int cnt = 0;
-        for (int u : g[diametr[i]]) {
-            if (u == diametr[0] || u == diametr.back()) {
-                cnt++;
-            } else if (u != diametr[i - 1] && u != diametr[i + 1]) {
-                if (sz(g[u]) != 1) {
-                    ans = 0;
-                }
-                cnt++;
-            }
-        }
-        ans = (1LL * ans * fact[cnt]) % mod;
-    }
-    if (sz(diametr) <= 3) {
-        return ans;
-    } else {
-        return (ans * 2) % mod;
-    }
+bool check(vi delta, vi p1, vi p2) {
+    vi left = delta * p1 * delta;
+    vi right = p2;
+    return left == right;
 }
 
 void solve() {
-    int m;
-    cin >> n >> m >> mod;
+    vi p1 = {7, 2, 6, 4, 1, 3, 5, 0};
+    vi p2 = {6, 4, 0, 5, 2, 7, 1, 3};
+    vi p3 = {3, 7, 0, 5, 2, 1, 6, 4};
+    p2 = rev(p2);
+    p3 = pow(p3, 15);
+    p2 = p2 * p3;
+    p2 = pow(p2, 166);
 
-    init();
+    vi ans(8);
+    iota(all(ans), 0);
 
-    for (int i = 0; i < m; i++) {
-        int v, u;
-        cin >> v >> u;
-        v--;
-        u--;
-        g[v].pb(u);
-        g[u].pb(v);
-    }
-
-    int ans = 1;
-    int cnt_other_comp = 0;
-    int cnt_comp_1 = 0;
-    int cnt_other = 2;
-
-    for (int v = 0; v < n; v++) {
-        if (sz(g[v]) == 0) {
-            cnt_comp_1++;
-        } else {
-            cnt_other++;
-            if (!used[v]) {
-                cnt_other_comp++;
-                is_acyclic = true;
-                dfs(v);
-                if (!is_acyclic) {
-                    ans = 0;
-                    break;
-                }
-                vi diametr = find_diametr(v);
-                ans = (1LL * calc(diametr) * 2 * ans) % mod;
+    do {
+        if (check(ans, p1, p2)) {
+            for (int i = 0; i < 8; i++) {
+                cout << ans[i] + 1 << ' ';
             }
+            cout << '\n';
         }
-    }
-
-    ans = (1LL * ans * fact[cnt_other_comp]) % mod;
-
-    for (int i = 0; i < cnt_comp_1; i++) {
-        ans = (1LL * ans * (cnt_other + i)) % mod;
-    }
-
-    cout << ans << '\n';
+    } while (next_permutation(all(ans)));
 }
 
 int main() {
