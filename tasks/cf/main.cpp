@@ -58,8 +58,12 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 const int N = 100;
 int k;
 int red_buttons = 0;
+int cur_iterations = 0;
+int GREADY_OF_CELL[N];
 int cur[N];
+bool first_time = true;
 int next_changes[N];
+int is_gridy[N];
 
 // Символ '0' соответствует городу, в котором сейчас нет ни Деда Мороза, ни запроса подарка.
 // Символ '1' соответствует городу, в котором сейчас нет Деда Мороза, но есть запрос подарка.
@@ -80,15 +84,18 @@ void scan(string& s) {
             break;
         case '2':
             cur[i] = 2;
+            GREADY_OF_CELL[i]++;
             break;
         case '3':
             cur[i] = 3;
+            GREADY_OF_CELL[i] += 2;
             break;
         case 'd':
             cur[i] = 4;
             break;
         case 'D':
             cur[i] = 5;
+            GREADY_OF_CELL[i]++;
             break;
         default:
             assert(false);
@@ -112,18 +119,59 @@ void first_pos() {
     cout << endl;
 }
 
+void GET_GRIDY_CELLS_PRIOR() {
+    vpii gred;
+    for (int i = 0; i < N; i++) {
+        gred.pb({GREADY_OF_CELL[i], i});
+    }
+    sort(rall(gred));
+
+    for (int i = 0; i < k; i++) {
+        is_gridy[gred[i].ss] = 1;
+    }
+}
+
 void do_changes() {
     memset(next_changes, 0, sizeof(int) * N);
 
-    for (int i = 0; i < N; i++) {
-        switch (cur[i]) {
-        case 4:
-            next_changes[i] = 1;
-        case 5:
-            next_changes[i] = 1;
-            break;
-        default:
-            break;
+    if (red_buttons < 500) {
+        for (int i = 0; i < N; i++) {
+            switch (cur[i]) {
+            case 4:
+                next_changes[i] = 1;
+            case 5:
+                next_changes[i] = 1;
+                break;
+            default:
+                break;
+            }
+        }
+    } else {
+        if (first_time) {
+            GET_GRIDY_CELLS_PRIOR();
+            first_time = 0;
+        }
+
+        int cnt_used_gridy = 0;
+        for (int i = 0; i < N; i++) {
+            if ((cur[i] == 4 || cur[i] == 5) && is_gridy[i]) {
+                cnt_used_gridy++;
+            } 
+        }
+
+        if (cnt_used_gridy == 0) {
+            
+        }
+        for (int i = 0; i < N; i++) {
+            switch (cur[i]) {
+            case 4:
+                next_changes[i] = 1;
+            case 5:
+                next_changes[i] = 1;
+                break;
+            default:
+                break;
+            }
         }
     }
 }
@@ -154,6 +202,7 @@ void solve() {
     cin >> k;
     first_pos();
     while (red_buttons < 10000) {
+        cur_iterations++;
         cin >> red_buttons;
         if (red_buttons >= 10000) break;
         string s;
