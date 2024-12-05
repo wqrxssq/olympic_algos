@@ -56,101 +56,111 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
 const int N = 100;
+int k;
 int red_buttons = 0;
+int cur[N];
+int next_changes[N];
 
-tuple<vector<int>, vector<int>, map<int, int>> decode_input(string &s, int k) {
-    vector<int> positions_of_santas;
-    vector<int> positions_of_box;
-    map<int, int> count_of_boxes_in_square;
+// Символ '0' соответствует городу, в котором сейчас нет ни Деда Мороза, ни запроса подарка.
+// Символ '1' соответствует городу, в котором сейчас нет Деда Мороза, но есть запрос подарка.
+// Символ '2' означает, что в этом городе сейчас есть активный запрос подарка, при этом в начале хода пришёл ещё один запрос подарка, но он не был активирован, так как ещё не истёк этот.
+// Символ '3' означает, что в этом городе сейчас есть активный запрос подарка, при этом данный запрос появился только что, а запрос, который был в этой клетке один ход назад, исчез и превратился в нажатие красной кнопки.
+// Символ 'd' - 4 означает, что в этом городе сейчас находится Дед Мороз и запроса подарка на этом ходу не поступало.
+// Символ 'D' - 5 означает, что в этом городе сейчас находится Дед Мороз и запрос подарка поступал только что, но был сразу выполнен.
 
-    for (int i = 0; i < s.size(); i++) {
-        if (s[i] == '0') continue;
-        if (s[i] == '1') {
-            positions_of_box.push_back(i);
-            count_of_boxes_in_square[i]++;
-        } else if (s[i] == '2') {
-            positions_of_box.push_back(i);
-            count_of_boxes_in_square[i]++;
-        } else if (s[i] == '3'){
-            red_buttons++;
-            positions_of_box.push_back(i);
-            count_of_boxes_in_square[i]++;
-        } else if (s[i] == 'd') {
-            positions_of_santas.push_back(i);
-        } else if (s[i] == 'D') {
-            positions_of_santas.push_back(i);
-            count_of_boxes_in_square[i]++;
-        }
-    }
-
-    return make_tuple(positions_of_santas, positions_of_box, count_of_boxes_in_square);
-}
-
-void ask(vector<pair<int, int>> ded) {
-    string result(N, 'N');
-    for (int i = 0; i < ded.size(); i++) {
-        if (ded[i].second == 0) {
-            result[ded[i].first] = 'S';
-        } else if (ded[i].second == 1) {
-            result[ded[i].first] = 'R';
-        } else if (ded[i].second == -1) {
-            result[ded[i].first] = 'L';
-        } else {
+void scan(string& s) {
+    for (int i = 0; i < N; i++) {
+        char c = s[i];
+        switch (c) {
+        case '0':
+            cur[i] = 0;
+            break;
+        case '1':
+            cur[i] = 1;
+            break;
+        case '2':
+            cur[i] = 2;
+            break;
+        case '3':
+            cur[i] = 3;
+            break;
+        case 'd':
+            cur[i] = 4;
+            break;
+        case 'D':
+            cur[i] = 5;
+            break;
+        default:
             assert(false);
         }
     }
-    cout << result << endl;
 }
 
-void send_pos(vi &pos) {
-    for (int x : pos) {
-        cout << x;
+void first_pos() {
+    int dist = N / k;
+    int left = k;
+    for (int i = 0; i < N; i++) {
+        if (i % dist == 0 && left > 0) {
+            left--;
+            cur[i] = 1;
+        }
+    }
+
+    for (int i = 0; i < N; i++) {
+        cout << cur[i];
     }
     cout << endl;
 }
 
-void first_pos(int k) {
-    vector<int> perm(100);
-    int dist = 100 / k;
-    int left = k;
-    for (int i = 0; i < 100; i++) {
-        if (i % dist == 0 && left > 0) {
-            left--;
-            perm[i] = 1;
+void do_changes() {
+    memset(next_changes, 0, sizeof(int) * N);
+
+    for (int i = 0; i < N; i++) {
+        switch (cur[i]) {
+        case 4:
+            next_changes[i] = 1;
+        case 5:
+            next_changes[i] = 1;
+            break;
+        default:
+            break;
         }
     }
-    send_pos(perm);
 }
 
-vector<pair<int, int>> fun(tuple<vector<int>, vector<int>, map<int, int>> input) {
-    auto positions_of_santas = get<0>(input);
-    auto positions_of_box = get<1>(input);
-    auto count_of_boxes_in_square = get<2>(input);
-
-    vector<pair<int, int>> ans;
-    if (red_buttons == 0) {
-        for (int x : positions_of_santas) {
-            ans.push_back({x, 0});
-        }
-    } else {
-        for (int x : positions_of_santas) {
-            ans.push_back({x, 1});
+void change_cur() {
+    for (int i = 0; i < N; i++) {
+        switch (next_changes[i]) {
+        case 1:
+            cout << 'R';
+            break;
+        case -1:
+            cout << 'L';
+            break;
+        case 0:
+            cout << 'N';
+            break;
+        case 2:
+            cout << 'S';
+            break;
+        default:
+            break;
         }
     }
-    return ans;
+    cout << endl;
 }
-
 
 void solve() {
-    int k;
     cin >> k;
-    first_pos(k);
+    first_pos();
     while (red_buttons < 10000) {
         cin >> red_buttons;
         if (red_buttons >= 10000) break;
         string s;
         cin >> s;
-        ask(fun(decode_input(s, k)));
+        scan(s);
+        do_changes();
+        change_cur();
     }
 }
 
