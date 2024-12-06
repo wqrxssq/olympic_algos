@@ -55,9 +55,16 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define setpr(_x) cout << setprecision(_x) << fixed
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
+struct edge {
+    int v, u;
+    int w;
+    // побочная информация
+    // ...
+};
+
 const int MAXN = 1e5;
 int n, m;
-vector<pair<int, int>> e;
+vector<edge> e;
 // первое число пары - v, второе - u
 
 void solve() {
@@ -66,7 +73,7 @@ void solve() {
         int v, u;
         cin >> v >> u;
         v--; u--;
-        e.pb({v, u});
+        e.pb({.v = v, .u = u, .w = 0});
     }
 }
 
