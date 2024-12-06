@@ -55,17 +55,18 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define setpr(_x) cout << setprecision(_x) << fixed
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
-struct edge {
-    int v, u;
-    int w;
-    // побочная информация
-    // ...
-};
-
-const int MAXN = 1e5;
+const int MAXN = 5000;
 int n, m;
-vector<edge> e;
-// первое число пары - v, второе - u
+int g[MAXN][MAXN];
+
+void visit_neigbors(int v) {
+    for (int u = 0; u < n; u++) {
+        if (g[v][u]) {
+            cout << u << ' ';
+        }
+    }
+    cout << '\n';
+}
 
 void solve() {
     cin >> n >> m;
@@ -73,8 +74,11 @@ void solve() {
         int v, u;
         cin >> v >> u;
         v--; u--;
-        e.pb({.v = v, .u = u, .w = 0});
+        g[v][u]++;
+        g[u][v]++;
     }
+
+    visit_neigbors(0);
 }
 
 int main() {
