@@ -55,65 +55,74 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define setpr(_x) cout << setprecision(_x) << fixed
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
-struct two_deques {
-    // инвариант размеры 2 дек примерно равны
-    int size = 0;
-    deque<int> L, R;
 
-    void push(int value) {
-        R.push_back(value);
-        size++;
-        if (size & 1) {
-            L.push_back(R.front());
-            R.pop_front();
-        }
+struct Node {
+    int x, min, max;
+};
+struct quer {
+    stack<Node> out, in;
+
+    int get_max(stack<Node>& s) {
+        return (s.empty() ? -INF : s.top().max);
+    }
+    int get_min(stack<Node>& s) {
+        return (s.empty() ? INF : s.top().min);
     }
 
-    void push_middle(int value) {
-        if (size & 1) {
-            R.push_front(value);
-        } else {
-            L.push_back(value);
-        }
-        size++;
+    void push(int x) {
+        in.push({x, min(get_min(in), x), max(get_max(in), x)});
     }
 
-    int get_first() {
-        return L.front();
+    void pop() {
+        if (out.empty()) {
+            while (!in.empty()) {
+                int x = in.top().x;
+                out.push({x, min(get_min(out), x), max(get_max(out), x)});
+                in.pop();
+            }
+        }
+        out.pop();
     }
 
-    void pop_first() {
-        L.pop_front();
-        size--;
-        if (size & 1) {
-            L.push_back(R.front());
-            R.pop_front();
-        }
+    int get() {
+        return max(get_max(in), get_max(out)) - min(get_min(in), get_min(out));
     }
 };
 
-const int MAXN = 5e5;
+const int MAXN = 6e5;
+int n;
+int a[MAXN];
+
+pair<int, int> query(int m) {
+    int max_len = 0;
+    int L = 0, R = 0;
+    quer q;
+    for (int l = 0, r = 0; l < n; l++) {
+        while (r < n && q.get() <= m) {
+            q.push(a[r++]);
+        }
+        if (r - l >= max_len) {
+            L = l + 1;
+            R = (q.get() <= m ? r : r - 1);
+            max_len = r - l;
+        }
+        q.pop();
+    }
+    return {L, R};
+}
 
 void solve() {
-    int n;
     cin >> n;
-    two_deques a;
-    while (n--) {
-        char c;
-        cin >> c;
-        if (c == '+') {
-            int id;
-            cin >> id;
-            a.push(id);
-        } else if (c == '*') {
-            int id;
-            cin >> id;
-            a.push_middle(id);
-        } else {
-            int id = a.get_first();
-            a.pop_first();
-            cout << id << '\n';
-        }
+    for (int i = 0; i < n; i++) {
+        cin >> a[i];
+    }
+    int q;
+    cin >> q;
+    while (q--) {
+        int m;
+        cin >> m;
+        auto [l, r] = query(m);
+        cout << l << ' ' << r << '\n';
     }
 }
 
