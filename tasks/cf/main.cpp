@@ -55,95 +55,63 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define setpr(_x) cout << setprecision(_x) << fixed
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
-struct Node {
-    int prior;
-    int size = 1;
-    int value;
-    Node *l, *r;
-    Node(int value_) : prior(rand()), size(1), value(value_), l(0), r(0) {
+struct two_deques {
+    // инвариант размеры 2 дек примерно равны
+    int size = 0;
+    deque<int> L, R;
+
+    void push(int value) {
+        R.push_back(value);
+        size++;
+        if (size & 1) {
+            L.push_back(R.front());
+            R.pop_front();
+        }
+    }
+
+    void push_middle(int value) {
+        if (size & 1) {
+            R.push_front(value);
+        } else {
+            L.push_back(value);
+        }
+        size++;
+    }
+
+    int get_first() {
+        return L.front();
+    }
+
+    void pop_first() {
+        L.pop_front();
+        size--;
+        if (size & 1) {
+            L.push_back(R.front());
+            R.pop_front();
+        }
     }
 };
-
-int size(Node* v) {
-    return (v ? v->size : 0);
-}
-void upd(Node* v) {
-    v->size = 1 + size(v->l) + size(v->r);
-}
-
-Node* merge(Node* L, Node* R) {
-    if (!L) {
-        return R;
-    }
-    if (!R) {
-        return L;
-    }
-    if (L->prior > R->prior) {
-        L->r = merge(L->r, R);
-        upd(L);
-        return L;
-    } else {
-        R->l = merge(L, R->l);
-        upd(R);
-        return R;
-    }
-}
-
-// вырежи первые k элементов
-pair<Node*, Node*> split(Node* v, int k) {
-    if (!v) {
-        return {0, 0};
-    }
-    if (size(v->l) >= k) {
-        auto [L, R] = split(v->l, k);
-        v->l = R;
-        upd(v);
-        return {L, v};
-    } else {
-        auto [L, R] = split(v->r, k - size(v->l) - 1);
-        v->r = L;
-        upd(v);
-        return {v, R};
-    }
-}
-
-Node* push(Node* v, int value_) {
-    Node* u = new Node(value_);
-    return merge(v, u);
-}
-
-Node* push_middle(Node* v, int value_) {
-    int n = size(v);
-    Node* u = new Node(value_);
-    auto [L, R] = split(v, (n + 1) / 2);
-    return merge(L, merge(u, R));
-}
-
-pair<int, Node*> get_first(Node* v) {
-    auto [L, R] = split(v, 1);
-    return {L->value, R};
-}
 
 const int MAXN = 5e5;
 
 void solve() {
     int n;
     cin >> n;
-    Node* root = 0;
+    two_deques a;
     while (n--) {
         char c;
         cin >> c;
         if (c == '+') {
             int id;
             cin >> id;
-            root = push(root, id);
+            a.push(id);
         } else if (c == '*') {
             int id;
             cin >> id;
-            root = push_middle(root, id);
+            a.push_middle(id);
         } else {
-            auto [id, temp] = get_first(root);
-            root = temp;
+            int id = a.get_first();
+            a.pop_first();
             cout << id << '\n';
         }
     }
