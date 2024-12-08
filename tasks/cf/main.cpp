@@ -56,75 +56,100 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define setpr(_x) cout << setprecision(_x) << fixed
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
-const int MAXMASK = 1 << 30;
-const int MAXN = 1e3;
-int n;
-int a[MAXN][MAXN];
-int matrix[MAXN][MAXN];
-int pref[MAXN][MAXN];
+struct cash_register {
+    deque<int> *master, *fantom;
+    // WARNING: fantom is reversed!
+    cash_register() {
+        master = new deque<int>();
+        fantom = 0;
+    }
+    cash_register(deque<int>* mas) {
+        master = mas;
+        fantom = 0;
+    }
 
-void build_matrix(uint mask) {
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            matrix[i][j] = ((a[i][j] & mask) > 0);
+    void push(int id) {
+        id %= 10;
+        if (!fantom) {
+            master->push_back(id);
+        } else {
+            fantom->push_front(id);
+            int n = fantom->size() + master->size();
+            if (n & 1) {
+                master->push_back(fantom->back());
+                fantom->pop_back();
+            }
         }
     }
+
+    int front() {
+        return master->front();
+    }
+
+    void pop() {
+        master->pop_front();
+        if (fantom) {
+            int n = master->size() + fantom->size();
+            if (n & 1) {
+                master->push_back(fantom->back());
+                fantom->pop_back();
+            }
+        }
+    }
+
+    void balance() {
+        // master is bigger
+        while (master->size() > fantom->size() + 1) {
+            fantom->push_back(master->back());
+            master->pop_back();
+        }
+        // fantom is bigger
+        while (fantom->size() > master->size()) {
+            master->push_back(fantom->back());
+            fantom->pop_back();
+        }
+    }
+};
+
+void close_cash_register(cash_register& will_be_open, cash_register& will_be_close) {
+    will_be_open.fantom = will_be_close.master;
+    will_be_close.master = 0;
+    will_be_open.balance();
 }
 
-int calc(int type) {
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            pref[i][j] = (matrix[i][j] != type ? 0 : 
-                                (j == 0 ? 1 : pref[i][j - 1] + 1));
-        }
-    }
- 
-    ll res = 0;
-    for (int j = 0; j < n; j++) {
-        stack<pll> q;
-        ll to_sum = 0;
-        for (int i = 0; i < n; i++) {
-            ll c = 0;
- 
-            while (q.size() != 0 && q.top().first > pref[i][j]) {
-                to_sum -= (q.top().second + 1) * 
-                             (q.top().first - pref[i][j]);
-                c += q.top().second + 1;
-                q.pop();
-            }
- 
-            to_sum += pref[i][j];
-            res = (res + to_sum) % MOD;
-            q.push({pref[i][j], c});
-        }
-    }
-
-    if (type == 0) {
-        return ((1LL * n * (n + 1) * n * (n + 1)) / 
-                    4 - res) % MOD;
-    } else {
-        return res % MOD;
-    }
+void open_cash_register(cash_register& opened, cash_register& closed) {
+    closed.master = opened.fantom;
+    opened.fantom = 0;
 }
 
 void solve() {
-    cin >> n;
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            cin >> a[i][j];
+    cash_register L, R;
+    int q;
+    cin >> q;
+    int cur_id = 1;
+    while (q--) {
+        char type;
+        cin >> type;
+        if (type == 'a') {
+            L.push(cur_id++);
+        } else if (type == 'b') {
+            R.push(cur_id++);
+        } else if (type == 'A') {
+            cout << L.front();
+            L.pop();
+        } else if (type == 'B') {
+            cout << R.front();
+            R.pop();
+        } else if (type == '>') {
+            close_cash_register(R, L);
+        } else if (type == ']') {
+            close_cash_register(L, R);
+        } else if (type == '<') {
+            open_cash_register(R, L);
+        } else {
+            open_cash_register(L, R);
         }
     }
-
-    int sumOR = 0, sumAND = 0;
-    for (uint mask = 1; mask <= MAXMASK; mask <<= 1) {
-        build_matrix(mask);
-        int tempOR = calc(0);
-        int tempAND = calc(1);
-
-        sumOR = (1LL * tempOR * mask + sumOR) % MOD;
-        sumAND = (1LL * tempAND * mask + sumAND) % MOD;
-    }
-    cout << sumAND << ' ' << sumOR << '\n';
 }
 
 int main() {
