@@ -22,6 +22,7 @@
 #include <climits>
 using namespace std;
 
+using uint = unsigned int;
 using ll = long long;
 using ull = unsigned long long;
 using vi = vector<int>;
@@ -56,11 +57,55 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
 const int MAXMASK = 1 << 30;
-const int MAXN = 3;
+const int MAXN = 1e3;
 int n;
 int a[MAXN][MAXN];
-int AND[MAXN][MAXN];
-int OR[MAXN][MAXN];
+int matrix[MAXN][MAXN];
+int pref[MAXN][MAXN];
+
+void build_matrix(uint mask) {
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            matrix[i][j] = ((a[i][j] & mask) > 0);
+        }
+    }
+}
+
+int calc(int type) {
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            pref[i][j] = (matrix[i][j] != type ? 0 : 
+                                (j == 0 ? 1 : pref[i][j - 1] + 1));
+        }
+    }
+ 
+    ll res = 0;
+    for (int j = 0; j < n; j++) {
+        stack<pll> q;
+        ll to_sum = 0;
+        for (int i = 0; i < n; i++) {
+            ll c = 0;
+ 
+            while (q.size() != 0 && q.top().first > pref[i][j]) {
+                to_sum -= (q.top().second + 1) * 
+                             (q.top().first - pref[i][j]);
+                c += q.top().second + 1;
+                q.pop();
+            }
+ 
+            to_sum += pref[i][j];
+            res = (res + to_sum) % MOD;
+            q.push({pref[i][j], c});
+        }
+    }
+
+    if (type == 0) {
+        return ((1LL * n * (n + 1) * n * (n + 1)) / 
+                    4 - res) % MOD;
+    } else {
+        return res % MOD;
+    }
+}
 
 void solve() {
     cin >> n;
@@ -72,35 +117,14 @@ void solve() {
 
     int sumOR = 0, sumAND = 0;
     for (uint mask = 1; mask <= MAXMASK; mask <<= 1) {
-        memset(OR, 0, sizeof(int) * MAXN * MAXN);
-        memset(AND, 0, sizeof(int) * MAXN * MAXN);
+        build_matrix(mask);
+        int tempOR = calc(0);
+        int tempAND = calc(1);
 
-        OR[0][0] = (a[0][0] & mask ? 1 : 0);
-        for (int i = 1; i < n; i++) {
-            OR[0][i] = (a[0][i] & mask ? i + 1 : OR[0][i - 1]);
-            OR[i][0] = (a[i][0] & mask ? i + 1 : OR[i - 1][0]);
-        }
-
-        for (int i = 1; i < n; i++) {
-            for (int j = 1; j < n; j++) {
-                if (a[i][j] & mask) {
-                    OR[i][j] = (i + 1) * (j + 1);
-                } else {
-                    OR[i][j] = OR[i - 1][j] + OR[i][j - 1] - OR[i - 1][j - 1];
-                }
-            }
-        }
-
-        int tempOR = 0;
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                tempOR = (tempOR + OR[i][j]) % MOD;
-            }
-        }
-        tempOR = (1LL * tempOR * mask) % MOD;
-        sumOR += tempOR;
+        sumOR = (1LL * tempOR * mask + sumOR) % MOD;
+        sumAND = (1LL * tempAND * mask + sumAND) % MOD;
     }
-    cout << sumOR << '\n';
+    cout << sumAND << ' ' << sumOR << '\n';
 }
 
 int main() {
