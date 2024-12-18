@@ -56,100 +56,35 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define setpr(_x) cout << setprecision(_x) << fixed
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
-struct cash_register {
-    deque<int> *master, *fantom;
-    // WARNING: fantom is reversed!
-    cash_register() {
-        master = new deque<int>();
-        fantom = 0;
-    }
-    cash_register(deque<int>* mas) {
-        master = mas;
-        fantom = 0;
-    }
 
-    void push(int id) {
-        id %= 10;
-        if (!fantom) {
-            master->push_back(id);
-        } else {
-            fantom->push_front(id);
-            int n = fantom->size() + master->size();
-            if (n & 1) {
-                master->push_back(fantom->back());
-                fantom->pop_back();
-            }
-        }
+double func(vector < pair <double, double> > contest) {
+    long double sum = 0;
+    for (auto [a, b] : contest) {
+        sum += (a / b);
     }
-
-    int front() {
-        return master->front();
-    }
-
-    void pop() {
-        master->pop_front();
-        if (fantom) {
-            int n = master->size() + fantom->size();
-            if (n & 1) {
-                master->push_back(fantom->back());
-                fantom->pop_back();
-            }
-        }
-    }
-
-    void balance() {
-        // master is bigger
-        while (master->size() > fantom->size() + 1) {
-            fantom->push_back(master->back());
-            master->pop_back();
-        }
-        // fantom is bigger
-        while (fantom->size() > master->size()) {
-            master->push_back(fantom->back());
-            fantom->pop_back();
-        }
-    }
-};
-
-void close_cash_register(cash_register& will_be_open, cash_register& will_be_close) {
-    will_be_open.fantom = will_be_close.master;
-    will_be_close.master = 0;
-    will_be_open.balance();
+    return sum / (int)contest.size();
 }
 
-void open_cash_register(cash_register& opened, cash_register& closed) {
-    closed.master = opened.fantom;
-    opened.fantom = 0;
-}
+void solve () {
+    vector < pair <double, double> > contest;
+    contest.push_back({23, 28}); // 1
+    contest.push_back({28, 32}); // 2
+    contest.push_back({26, 28}); // 3
+    contest.push_back({16, 24}); // 4
+    contest.push_back({14, 28}); // 5
+    contest.push_back({20, 28}); // 6
+    contest.push_back({28, 32}); // 7
 
-void solve() {
-    cash_register L, R;
-    int q;
-    cin >> q;
-    int cur_id = 1;
-    while (q--) {
-        char type;
-        cin >> type;
-        if (type == 'a') {
-            L.push(cur_id++);
-        } else if (type == 'b') {
-            R.push(cur_id++);
-        } else if (type == 'A') {
-            cout << L.front();
-            L.pop();
-        } else if (type == 'B') {
-            cout << R.front();
-            R.pop();
-        } else if (type == '>') {
-            close_cash_register(R, L);
-        } else if (type == ']') {
-            close_cash_register(L, R);
-        } else if (type == '<') {
-            open_cash_register(R, L);
-        } else {
-            open_cash_register(L, R);
-        }
-    }
+    double score_hm = func(contest) * 10;
+    double score_kollok = 10;
+    double score_kr = 3.5;
+    double score_lab = 10;
+    double score_exam = 1;
+
+    cout << setprecision(3) << fixed << '\n';
+    double score = score_hm * 0.25 + score_kollok * 0.25 + score_kr * 0.15 + score_lab * 0.05 + score_exam * 0.3;
+    cout << "not rounded = " << score << " " << '\n';
+    cout << "rounded score = " << round(score) << '\n';
 }
 
 int main() {

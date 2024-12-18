@@ -1,1 +1,3 @@
-12543
+
+not rounded = 5.747 
+rounded score = 6.000
