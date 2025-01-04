@@ -1,5 +1,1 @@
 .vscode
-tasks/build
-tasks/build/Debug
-tasks/in.txt
-tasks/out.txt
