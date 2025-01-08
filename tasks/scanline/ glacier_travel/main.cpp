@@ -60,6 +60,15 @@ struct r {
     int x, y;
 };
 
+struct r_double {
+    double x, y;
+};
+
+struct event {
+    double t;
+    int type, id;
+};
+
 r operator -(r a, r b) {
     return {a.x - b.x, a.y - b.y};
 }
@@ -70,28 +79,79 @@ double len(r a) {
 const int MAXN = 1e6;
 int n;
 r p[MAXN];
+r line[MAXN];
 int s;
 
 void solve () {
     cin >> s >> n;
-    vector<pair<double, int>> event;
-    double cur_time = 0;
-    r prev_dot;
+
     for (int i = 0; i < n; i++) {
         cin >> p[i].x >> p[i].y;
-        if (i == 0) {
-            prev_dot = p[i];
-        }
-        double dist = len(p[i] - prev_dot);
-        event.push_back({cur_time, 0});
-        event.push_back({cur_time + s, 1});
-        cur_time += dist;
     }
 
-    event.push_back({cur_time, 0});
-    event.push_back({cur_time + s, 1});
+    for (int i = 0; i < n - 1; i++) {
+        line[i] = p[i + 1] - p[i];
+    }
 
-    sort(event.begin(), event.end());
+    vector<event> events;
+    double cur_time = 0;
+
+    for (int i = 0; i < n - 1; i++) {
+        events.push_back({cur_time, 0, i});
+        events.push_back({cur_time + s, 1, i});
+        cur_time += len(line[i]);
+    }
+    events.push_back({cur_time, 0, n - 1});
+
+    sort(events.begin(), events.end(), [](event a, event b) {
+        return a.t < b.t;
+    });
+
+    double ans = INF;
+
+    // в каком отрезке
+    int id_a = -1, id_b = -1;
+
+    // текущие коордианты точки a, b
+    r_double a = {0, 0}, b = {0, 0};
+
+    // текущее время для точки a, b
+    double t_a, t_b;
+
+    for (int i = 0; i < (int)events.size() - 1; i++) {
+        auto [t, type, id] = events[i];
+        if (type == 0) {
+            // вычислим координаты a, b
+            id_a = id;
+            t_a = t;
+            a = {(double)p[id].x, (double)p[id].y};
+
+            if (id_a == n - 1) {
+                break;
+            }
+
+            if (id_b == -1) {
+                continue;
+            }
+
+            b = {b.x + (double)line[id_b].x * (double)(t - t_b) / len(line[id_b]), 
+                b.y + (double)line[id_b].y * (double)(t - t_b) / len(line[id_b])};
+            t_b = t;
+        } else {
+            // вычислим координаты a, b
+            id_b = id;
+            t_b = t;
+            b = {(double)p[id].x, (double)p[id].y};
+
+            a = {a.x + (double)line[id_a].x * (double)(t - t_a) / len(line[id_a]), 
+                a.y + (double)line[id_a].y * (double)(t - t_a) / len(line[id_a])};
+            t_a = t;
+        }
+
+        double have_
+    }
+
+    cout << ans << '\n';
 }
 
 int main() {
