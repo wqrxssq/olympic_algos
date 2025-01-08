@@ -148,7 +148,9 @@ void solve () {
             t_a = t;
         }
 
-        double have_
+        // double l = 0;
+        // double r = events[i + 1].t - events[i].t;
+        
     }
 
     cout << ans << '\n';
