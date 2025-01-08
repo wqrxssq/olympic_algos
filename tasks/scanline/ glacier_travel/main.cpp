@@ -75,12 +75,26 @@ r operator -(r a, r b) {
 double len(r a) {
     return sqrt(1LL * a.x * a.x + 1LL * a.y * a.y);
 }
+r_double operator -(r_double a, r_double b) {
+    return {a.x - b.x, a.y - b.y};
+}
+double len(r_double a) {
+    return sqrt(1LL * a.x * a.x + 1LL * a.y * a.y);
+}
 
 const int MAXN = 1e6;
 int n;
 r p[MAXN];
 r line[MAXN];
-int s;
+double s;
+
+double f(double t, int id_a, r_double a, int id_b, r_double b) {
+    a = {a.x + (double)line[id_a].x * t / len(line[id_a]), 
+        a.y + (double)line[id_a].y * t / len(line[id_a])};
+    b = {b.x + (double)line[id_b].x * t / len(line[id_b]), 
+        b.y + (double)line[id_b].y * t / len(line[id_b])};
+    return len(a - b);
+}
 
 void solve () {
     cin >> s >> n;
@@ -116,14 +130,13 @@ void solve () {
     r_double a = {0, 0}, b = {0, 0};
 
     // текущее время для точки a, b
-    double t_a, t_b;
+    double prev_t;
 
     for (int i = 0; i < (int)events.size() - 1; i++) {
         auto [t, type, id] = events[i];
         if (type == 0) {
             // вычислим координаты a, b
             id_a = id;
-            t_a = t;
             a = {(double)p[id].x, (double)p[id].y};
 
             if (id_a == n - 1) {
@@ -131,26 +144,35 @@ void solve () {
             }
 
             if (id_b == -1) {
+                prev_t = t;
                 continue;
             }
 
-            b = {b.x + (double)line[id_b].x * (double)(t - t_b) / len(line[id_b]), 
-                b.y + (double)line[id_b].y * (double)(t - t_b) / len(line[id_b])};
-            t_b = t;
+            b = {b.x + (double)line[id_b].x * (double)(t - prev_t) / len(line[id_b]), 
+                b.y + (double)line[id_b].y * (double)(t - prev_t) / len(line[id_b])};
+            prev_t = t;
         } else {
             // вычислим координаты a, b
             id_b = id;
-            t_b = t;
             b = {(double)p[id].x, (double)p[id].y};
 
-            a = {a.x + (double)line[id_a].x * (double)(t - t_a) / len(line[id_a]), 
-                a.y + (double)line[id_a].y * (double)(t - t_a) / len(line[id_a])};
-            t_a = t;
+            a = {a.x + (double)line[id_a].x * (double)(t - prev_t) / len(line[id_a]), 
+                a.y + (double)line[id_a].y * (double)(t - prev_t) / len(line[id_a])};
+            prev_t = t;
         }
 
-        // double l = 0;
-        // double r = events[i + 1].t - events[i].t;
-        
+        double l = 0;
+        double r = events[i + 1].t - events[i].t;
+        while (r - l > EPS) {
+            double m1 = l + (r - l) / 3;
+            double m2 = r - (r - l) / 3;
+            if (f(m1, id_a, a, id_b, b) <= f(m2, id_a, a, id_b, b)) {
+                r = m2;
+            } else {
+                l = m1;
+            }
+        }
+        ans = min(ans, f((l + r) / 2, id_a, a, id_b, b));
     }
 
     cout << ans << '\n';
@@ -162,5 +184,6 @@ int main() {
     freopen("in.txt", "r", stdin);
     freopen("out.txt", "w", stdout);
 #endif
+    cout << setprecision(6) << fixed;
     solve();
 }
