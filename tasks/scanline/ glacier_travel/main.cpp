@@ -60,6 +60,13 @@ struct r {
     int x, y;
 };
 
+r operator -(r a, r b) {
+    return {a.x - b.x, a.y - b.y};
+}
+double len(r a) {
+    return sqrt(1LL * a.x * a.x + 1LL * a.y * a.y);
+}
+
 const int MAXN = 1e6;
 int n;
 r p[MAXN];
@@ -67,9 +74,24 @@ int s;
 
 void solve () {
     cin >> s >> n;
+    vector<pair<double, int>> event;
+    double cur_time = 0;
+    r prev_dot;
     for (int i = 0; i < n; i++) {
         cin >> p[i].x >> p[i].y;
+        if (i == 0) {
+            prev_dot = p[i];
+        }
+        double dist = len(p[i] - prev_dot);
+        event.push_back({cur_time, 0});
+        event.push_back({cur_time + s, 1});
+        cur_time += dist;
     }
+
+    event.push_back({cur_time, 0});
+    event.push_back({cur_time + s, 1});
+
+    sort(event.begin(), event.end());
 }
 
 int main() {
