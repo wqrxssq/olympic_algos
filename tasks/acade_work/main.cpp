@@ -1,47 +1,42 @@
 #include <iostream>
-#include <unordered_set>
+#include <vector>
+#include <algorithm>
+#include <queue>
 using namespace std;
 
-const int MAXN = 500;
-int ans[MAXN];
-int cur_cnt = 0;
-
-bool is_happy(int n) {
-    unordered_set<int> q;
-    while (!q.count(n)) {
-        q.insert(n);
-        int s = 0;
-        while (n) {
-            s += (n % 10) * (n % 10);
-            n /= 10;
-        }
-        if (s == 1) {
-            return true;
-        }
-        n = s;
-    }
-    return false;
-}
-
-void precalc() {
-    for (int i = 1; cur_cnt < MAXN; i++) {
-        if (is_happy(i)) {
-            ans[cur_cnt++] = i;
-        }
-    }
+bool cmp(pair<int, int> a, pair<int, int> b) {
+    return (a.second < b.second) || (a.second == b.second && a.first > b.first);
 }
 
 void solve() {
     int n;
     cin >> n;
-    cout << ans[n - 1] << '\n';
+    int k = 1;
+    vector<pair<int, int>> seg;
+    for (int i = 0; i < n; i++) {
+        int l, r;
+        cin >> l >> r;
+        seg.push_back({l, r});
+    }
+
+    sort(seg.begin(), seg.end(), cmp);
+
+    int ans = 0;
+    queue<int> q;
+    for (auto [l, r] : seg) {
+        while (q.size() > 0 && q.front() <= l) {
+            q.pop();
+        }
+        if (q.size() < k) {
+            ans++;
+            q.push(r);
+        }
+    }
+    cout << ans << '\n';
 }
 
 int main() {
-    precalc();
-    int t;
-    cin >> t;
-    while (t--) {
-        solve();
-    }
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    solve();
 }
