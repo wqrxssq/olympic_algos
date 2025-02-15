@@ -56,35 +56,117 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define setpr(_x) cout << setprecision(_x) << fixed
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
+struct Node {
+    int min, max, val;
+};
 
-double func(vector < pair <double, double> > contest) {
-    long double sum = 0;
-    for (auto [a, b] : contest) {
-        sum += (a / b);
+const int MAXN = 1e5;
+int n;
+int a[MAXN];
+Node t[MAXN << 2];
+
+void push(Node &v, Node &l, Node &r) {
+    if (v.val == 0) {
+        return;
     }
-    return sum / (int)contest.size();
+
+    if (v.val <= l.max && v.val > l.min) {
+        l.min = max(v.val, l.min);
+        l.val = v.val;
+    } else if (v.val > l.max) {
+        l = {v.val, v.val, v.val};
+    }
+
+    if (v.val <= r.max && v.val > r.min) {
+        r.min = max(v.val, r.min);
+        r.val = v.val;
+    } else if (v.val > r.max) {
+        r = {v.val, v.val, v.val};
+    }
+
+    v.val = 0;
 }
 
-void solve () {
-    vector < pair <double, double> > contest;
-    contest.push_back({23, 28}); // 1
-    contest.push_back({28, 32}); // 2
-    contest.push_back({26, 28}); // 3
-    contest.push_back({16, 24}); // 4
-    contest.push_back({14, 28}); // 5
-    contest.push_back({20, 28}); // 6
-    contest.push_back({28, 32}); // 7
+pll combine(pll l, pll r) {
+    return {min(l.ff, r.ff), max(l.ss, r.ss)};
+}
+Node combine(Node l, Node r) {
+    return {min(l.min, r.min), max(l.max, r.max), 0};
+}
 
-    double score_hm = func(contest) * 10;
-    double score_kollok = 10;
-    double score_kr = 3.5;
-    double score_lab = 10;
-    double score_exam = 1;
+void build(int tl, int tr, int v) {
+    if (tl == tr) {
+        t[v] = {a[tl], a[tl], 0};
+    } else {
+        int tm = (tl + tr) >> 1;
+        build(tl, tm, v << 1);
+        build(tm + 1, tr, v << 1 | 1);
+        t[v] = combine(t[v << 1], t[v << 1 | 1]);
+    }
+}
 
-    cout << setprecision(3) << fixed << '\n';
-    double score = score_hm * 0.25 + score_kollok * 0.25 + score_kr * 0.15 + score_lab * 0.05 + score_exam * 0.3;
-    cout << "not rounded = " << score << " " << '\n';
-    cout << "rounded score = " << round(score) << '\n';
+void set_max_x(int tl, int tr, int v, int l, int r, int x) {
+    if (l > r) {
+        return;
+    }
+    if (tl == l && tr == r) {
+        if (x <= t[v].min) {
+            return;
+        }
+        if (x <= t[v].max) {
+            t[v].min = x;
+            t[v].val = x;
+        } else {
+            t[v] = {x, x, x};
+        }
+    } else {
+        int tm = (tl + tr) >> 1;
+        push(t[v], t[v << 1], t[v << 1 | 1]);
+        set_max_x(tl, tm, v << 1, l, min(tm, r), x);
+        set_max_x(tm + 1, tr, v << 1 | 1, max(tm + 1, l), r, x);
+        t[v] = combine(t[v << 1], t[v << 1 | 1]);
+    }
+}
+
+pll min_max(int tl, int tr, int v, int l, int r) {
+    if (l > r) {
+        return {INF, 0};
+    }
+    if (tl == l && tr == r) {
+        return {t[v].min, t[v].max};
+    }
+    push(t[v], t[v << 1], t[v << 1 | 1]);
+    int tm = (tl + tr) >> 1;
+    return combine(min_max(tl, tm, v << 1, l, min(tm, r)), 
+            min_max(tm + 1, tr, v << 1 | 1, max(tm + 1, l), r));
+}
+
+void solve() {
+    cin >> n;
+    for (int i = 0; i < n; i++) {
+        cin >> a[i];
+    }
+
+    build(0, n - 1, 1);
+
+    int q;
+    cin >> q;
+    while (q--) {
+        string s;
+        cin >> s;
+        if (s == "set") {
+            int l, r, val;
+            cin >> l >> r >> val;
+            l--; r--;
+            set_max_x(0, n - 1, 1, l, r, val);
+        } else {
+            int l, r;
+            cin >> l >> r;
+            l--; r--;
+            pll ans = min_max(0, n - 1, 1, l, r);
+            cout << ans.ss - ans.ff << '\n';
+        }
+    }
 }
 
 int main() {
