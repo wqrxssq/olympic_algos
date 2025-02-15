@@ -1,128 +1,49 @@
 #include <iostream>
+#include <set>
 #include <vector>
-
+#include <algorithm>
+#include <queue>
 using namespace std;
 
-const int SIZE = 16;
-char grid[SIZE][SIZE];
+typedef long long ll;
+const ll INFLL = 1e18;
+struct seg {
+    int l, r, c;
+};
 
-bool check(int i, int j) {
-    for (int k = 0; k < SIZE; k++) {
-        if (grid[i][k] != '-' && grid[i][k] == grid[i][j] && k != j) {
-            return false;
-        }
-        if (grid[k][j] != '-' && grid[k][j] == grid[i][j] && k != i) {
-            return false;
-        }
-    }
-    int block_i = i / 4;
-    int block_j = j / 4;
-    for (int k = block_i * 4; k < block_i * 4 + 4; k++) {
-        for (int l = block_j * 4; l < block_j * 4 + 4; l++) {
-            if (i == k && j == l) {
-                continue;
-            }
-            if (grid[k][l] != '-' && grid[k][l] == grid[i][j]) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
+// 2 1 1 1 2 2 2
 
-vector<int> get_forbidden(int i, int j) {
-    vector<int> forbidden(SIZE, false);
-    for (int k = 0; k < SIZE; k++) {
-        if (grid[i][k] != '-') {
-            forbidden[grid[i][k] - 'A'] = true;
-        }
-        if (grid[k][j] != '-') {
-            forbidden[grid[k][j] - 'A'] = true;
-        }
-    }
-    int block_i = i / 4;
-    int block_j = j / 4;
-    for (int k = block_i * 4; k < block_i * 4 + 4; k++) {
-        for (int l = block_j * 4; l < block_j * 4 + 4; l++) {
-            if (i == k && j == l) {
-                continue;
-            }
-            if (grid[k][l] != '-') {
-                forbidden[grid[k][l] - 'A'] = true;
-            }
-        }
-    }
-    return forbidden;
-}
-
-bool dfs(int i, int j) {
-    if (i == SIZE) {
-        return true;
-    }
-    if (check(i, j)) {
-        int next_i = i;
-        int next_j = j + 1;
-        for (; next_i < SIZE; next_i++) {
-            for (; next_j < SIZE; next_j++) {
-                if (grid[next_i][next_j] == '-') {
-                    break;
-                }
-            }
-            if (next_j < SIZE) {
-                break;
-            }
-            next_j = 0;
-        }
-        vector<int> forbidden = get_forbidden(i, j);
-        for (int c = 0; c < SIZE; c++) {
-            if (forbidden[c]) {
-                continue;
-            }
-            grid[i][j] = 'A' + c;
-            if (dfs(next_i, next_j)) {
-                return true;
-            }
-            grid[i][j] = '-';
-        }
-    }
-    return false;
-}
+// 3 1 2 1 3 2 1 2 4 3
 
 void solve() {
-    for (int i = 0; i < SIZE; i++) {
-        for (int j = 0; j < SIZE; j++) {
-            if (grid[i][j] == '-') {
-                if (dfs(i, j)) {
-                    cout << "NO SOLUTION\n";
-                    return;
-                } else {
-                    break;
-                }
-            }
+    int n;
+    cin >> n;
+    vector<seg> a(n);
+    for (auto &[l, r, c] : a) {
+        int t;
+        cin >> l >> t >> c;
+        r = l + t;
+    }
+
+    sort(a.begin(), a.end(), [](seg &a, seg &b) {
+        return a.r < b.r;
+    });
+    vector<pair<int, ll>> ans;
+    ans.push_back({0, 0});
+    for (auto &[l, r, c] : a) {
+        pair<int, ll> s = {l, INFLL};
+        auto [r_best, c_best] = ans[upper_bound(ans.begin(), ans.end(), s) - ans.begin() - 1];
+        c_best += c;
+        if (ans.back().second < c_best) {
+            ans.push_back({r, c_best});
         }
     }
 
-    for (int i = 0; i < SIZE; i++) {
-        for (int j = 0; j < SIZE; j++) {
-            cout << grid[i][j];
-        }
-        cout << '\n';
-    }
+    cout << ans.back().second << endl;
 }
 
 int main() {
-    freopen("in.txt", "r", stdin);
-    freopen("out.txt", "w", stdout);
-    string s;
-    int i = 0;
-    while (cin >> s) {
-        for (int j = 0; j < 16; j++) {
-            grid[i][j] = s[j];
-        }
-        i++;
-        if (i == 16) {
-            solve();
-            i = 0;
-        }
-    }
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    solve();
 }
