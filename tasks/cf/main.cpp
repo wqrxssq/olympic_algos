@@ -56,89 +56,63 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define setpr(_x) cout << setprecision(_x) << fixed
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
-struct Node {
-    int min, max, val;
-};
-
 const int MAXN = 1e5;
 int n;
 int a[MAXN];
-Node t[MAXN << 2];
+int b[MAXN];
+ll pref[MAXN + 1];
+pll t[MAXN << 2];
 
-void push(Node &v, Node &l, Node &r) {
-    if (v.val == 0) {
-        return;
+void build_pref() {
+    for (int i = 0; i < n; i++) {
+        pref[i + 1] = pref[i] + b[i];
     }
-
-    if (v.val <= l.max && v.val > l.min) {
-        l.min = max(v.val, l.min);
-        l.val = v.val;
-    } else if (v.val > l.max) {
-        l = {v.val, v.val, v.val};
-    }
-
-    if (v.val <= r.max && v.val > r.min) {
-        r.min = max(v.val, r.min);
-        r.val = v.val;
-    } else if (v.val > r.max) {
-        r = {v.val, v.val, v.val};
-    }
-
-    v.val = 0;
 }
 
-pll combine(pll l, pll r) {
-    return {min(l.ff, r.ff), max(l.ss, r.ss)};
+// [l, r)
+ll sum(int l, int r) {
+    return pref[r] - pref[l];
 }
-Node combine(Node l, Node r) {
-    return {min(l.min, r.min), max(l.max, r.max), 0};
+
+pll merge(pll v, pll vl, pll vr, int tl, int tr) {
+    return {vl.ff + vr.ff + sum(tl, tr + 1) * v.ss, v.ss};
 }
 
 void build(int tl, int tr, int v) {
     if (tl == tr) {
-        t[v] = {a[tl], a[tl], 0};
+        t[v] = {a[tl], 0};
     } else {
         int tm = (tl + tr) >> 1;
         build(tl, tm, v << 1);
         build(tm + 1, tr, v << 1 | 1);
-        t[v] = combine(t[v << 1], t[v << 1 | 1]);
+        t[v].ff = t[v << 1].ff + t[v << 1 | 1].ff;
     }
 }
 
-void set_max_x(int tl, int tr, int v, int l, int r, int x) {
+void add(int tl, int tr, int v, int l, int r) {
     if (l > r) {
         return;
     }
     if (tl == l && tr == r) {
-        if (x <= t[v].min) {
-            return;
-        }
-        if (x <= t[v].max) {
-            t[v].min = x;
-            t[v].val = x;
-        } else {
-            t[v] = {x, x, x};
-        }
+        t[v].ff += sum(l, r + 1);
+        t[v].ss++;
     } else {
         int tm = (tl + tr) >> 1;
-        push(t[v], t[v << 1], t[v << 1 | 1]);
-        set_max_x(tl, tm, v << 1, l, min(tm, r), x);
-        set_max_x(tm + 1, tr, v << 1 | 1, max(tm + 1, l), r, x);
-        t[v] = combine(t[v << 1], t[v << 1 | 1]);
+        add(tl, tm, v << 1, l, min(tm, r));
+        add(tm + 1, tr, v << 1 | 1, max(tm + 1, l), r);
+        t[v] = merge(t[v], t[v << 1], t[v << 1 | 1], tl, tr);
     }
 }
 
-pll min_max(int tl, int tr, int v, int l, int r) {
+ll query(int tl, int tr, int v, int l, int r) {
     if (l > r) {
-        return {INF, 0};
+        return 0;
     }
     if (tl == l && tr == r) {
-        return {t[v].min, t[v].max};
+        return t[v].ff;
     }
-    push(t[v], t[v << 1], t[v << 1 | 1]);
     int tm = (tl + tr) >> 1;
-    return combine(min_max(tl, tm, v << 1, l, min(tm, r)), 
-            min_max(tm + 1, tr, v << 1 | 1, max(tm + 1, l), r));
+    return query(tl, tm, v << 1, l, min(tm, r)) + query(tm + 1, tr, v << 1 | 1, max(tm + 1, l), r) + sum(l, r + 1) * t[v].ss;
 }
 
 void solve() {
@@ -146,25 +120,23 @@ void solve() {
     for (int i = 0; i < n; i++) {
         cin >> a[i];
     }
+    for (int i = 0; i < n; i++) {
+        cin >> b[i];
+    }
 
+    build_pref();
     build(0, n - 1, 1);
 
     int q;
     cin >> q;
     while (q--) {
-        string s;
-        cin >> s;
-        if (s == "set") {
-            int l, r, val;
-            cin >> l >> r >> val;
-            l--; r--;
-            set_max_x(0, n - 1, 1, l, r, val);
+        char c;
+        int l, r;
+        cin >> c >> l >> r;
+        if (c == '+') {
+            add(0, n - 1, 1, l, r);
         } else {
-            int l, r;
-            cin >> l >> r;
-            l--; r--;
-            pll ans = min_max(0, n - 1, 1, l, r);
-            cout << ans.ss - ans.ff << '\n';
+            cout << query(0, n - 1, 1, l, r) << '\n';
         }
     }
 }
