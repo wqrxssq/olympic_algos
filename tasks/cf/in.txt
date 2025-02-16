@@ -1,7 +1,8 @@
-abcda
 5
-palindrome? 1 5
-palindrome? 1 1
-change 4 b
-palindrome? 1 5
-palindrome? 2 4
+1 2 3 4 5
+5
+5 7 2
+4 7 3
+1 5 5
+7 7 1
+2 5 1
