@@ -51,11 +51,6 @@ struct Node {
         R = new Node(tm + 1, tr);
     }
 
-    void copy() {
-        L = new Node(*L);
-        R = new Node(*R);
-    }
-
     void add(int pos, int x) {
         if (tl == tr) {
             sum = max(sum + x, 0);
@@ -70,11 +65,12 @@ struct Node {
                 cnt_uniq = 0;
             }
         } else {
-            copy();
             int tm = (tl + tr) >> 1;
             if (pos <= tm) {
+                L = new Node(*L);
                 L->add(pos, x);
             } else {
+                R = new Node(*R);
                 R->add(pos, x);
             }
             sum = L->sum + R->sum;
@@ -96,13 +92,13 @@ struct Node {
     }
 };
 
-const int MAXN = 4e5;
+const int MAXN = 3e5;
 int n, m;
-Node *version[MAXN];
+Node *version[MAXN + 1];
 
 void solve() {
     cin >> n >> m;
-    version[0] = new Node(1, MAXN);
+    version[0] = new Node(1, m);
 
     int sum = 0;
     for (int i = 0; i < n; i++) {
@@ -125,7 +121,7 @@ void solve() {
             int res = version[v]->cnt_diff;
             cout << res << '\n';
             sum += res;
-            version[i + 1] = new Node(*version[v]);
+            version[i + 1] = new Node(*version[i]);
         } else if (s == "unique") {
             int y;
             cin >> y;
@@ -133,7 +129,7 @@ void solve() {
             int res = version[v]->cnt_uniq;
             cout << res << '\n';
             sum += res;
-            version[i + 1] = new Node(*version[v]);
+            version[i + 1] = new Node(*version[i]);
         } else {
             int x, y;
             cin >> x >> y;
@@ -141,7 +137,7 @@ void solve() {
             int res = version[v]->get_count(x);
             cout << res << '\n';
             sum += res;
-            version[i + 1] = new Node(*version[v]);
+            version[i + 1] = new Node(*version[i]);
         }
     }
 }
