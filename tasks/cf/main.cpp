@@ -39,105 +39,134 @@ const int INF = 1e9;
 const ll INFLL = 1e18;
 const int MOD = 1e9 + 7;
 
-const int MAXN = 450000;
-int n;
-int a[MAXN];
+struct query{
+    int x, y;
+    int id;
+};
+struct dot{
+    int l, r;
+    int y;
+    int type;
+};
 
-struct node {
+struct Node {
     int tl, tr;
-    int sum = 0;
-    node *l, *r;
-    
-    node(int tl_, int tr_) : tl(tl_), tr(tr_) {
-        l = NULL;
-        r = NULL;
-    }
+    Node *l = 0, *r = 0;
+    int add = 0;
+
+    Node (int tl_, int tr_) : tl(tl_), tr(tr_) {}
 
     void push() {
-        if (l == NULL && tl != tr) {
+        if (!l && tl != tr) {
             int tm = (tl + tr) >> 1;
-            l = new node(tl, tm);
-            r = new node(tm + 1, tr);
+            l = new Node(tl, tm);
+            l->add = add;
+            r = new Node(tm + 1, tr);
+            r->add = add;
+            add = 0;
         }
     }
-
-    void inc(int pos) {
-        if (tl == tr) {
-            sum++;
+    
+    void add_x(int ql, int qr, int x) {
+        if (ql > qr) {
+            return;
+        }
+        if (tl == ql && tr == qr) {
+            add += x;
         } else {
             push();
             int tm = (tl + tr) >> 1;
-            if (pos <= tm) {
-                l->inc(pos);
-            } else {
-                r->inc(pos);
-            }
-            sum++;
+            l->add_x(ql, min(tm, qr), x);
+            r->add_x(max(tm + 1, ql), qr, x);
         }
     }
 
-    void upd(int pos, int x) {
+    int get(int pos) {
         if (tl == tr) {
-            sum += x;
+            return add;
+        }
+        push();
+        int tm = (tl + tr) >> 1;
+        if (pos <= tm) {
+            return add + l->get(pos);
         } else {
-            int tm = (tl + tr) >> 1;
-            if (pos <= tm) {
-                l = new node(*l);
-                l->upd(pos, x);
-            } else {
-                r = new node(*r);
-                r->upd(pos, x);
-            }
-            sum = l->sum + r->sum;
+            return add + r->get(pos);
         }
     }
 };
 
-node *root[MAXN + 1];
+const int MAXN = 2e5;
+int n;
+int lx[MAXN], rx[MAXN];
+int ly[MAXN], ry[MAXN];
+vector<dot> d;
 
-int get_kth(node *L, node *R, int k) {
-    if (L->tl == L->tr) {
-        return L->tl;
-    } else {
-        int cnt_left = L->l->sum - R->l->sum;
-        if (cnt_left >= k)
-            return get_kth(L->l, R->l, k);
-        else
-            return get_kth(L->r, R->r, k - cnt_left);
-    }
+// кол-во отрезков которым принадлежит x
+int get_cnt_x(int x) {
+    return n - ((lower_bound(rx, rx + n, x) - rx) + n - (upper_bound(lx, lx + n, x) - lx));
+}
+
+// кол-во отрезков которым принадлежит y
+int get_cnt_y(int y) {
+    return n - ((lower_bound(ry, ry + n, y) - ry) + n - (upper_bound(ly, ly + n, y) - ly));
 }
 
 void solve() {
     cin >> n;
-    for (int i = 0; i < n; i++) {
-        cin >> a[i];
-    }
-
-    root[0] = new node(0, INF);
-    for (int i = 0; i < n; i++) {
-        root[0]->inc(a[i]);
-    }
 
     for (int i = 0; i < n; i++) {
-        root[i + 1] = new node(*root[i]);
-        root[i + 1]->upd(a[i], -1);
+        cin >> lx[i] >> rx[i];
+        cin >> ly[i] >> ry[i];
+        d.pb({lx[i], rx[i], ly[i], 1});
+        d.pb({lx[i], rx[i], ry[i], -1});
     }
 
-    ll res = 0;
-    int q;
-    cin >> q;
-    int prev_ans = 0;
-    for (int i = 0; i < q; i++) {
-        int l, r, k;
-        cin >> l >> r >> k;
-        l = (l + prev_ans) % n + 1;
-        r = (r + prev_ans) % n + 1;
-        prev_ans = get_kth(root[l - 1], root[r], k);
-        res += prev_ans;
+    sort(lx, lx + n); sort(rx, rx + n);
+    sort(ly, ly + n); sort(ry, ry + n);
+
+    sort(all(d), [](dot a, dot b) {
+        return a.y < b.y || (a.y == b.y && a.type > b.type);
+    });
+
+    int res = 0;
+    int p = -1, q = -1;
+
+    Node *root = new Node(0, INF);
+
+    int prev_y = -1;
+    vpii need_to_calc;
+    for (auto [l, r, y, type] : d) {
+        if (y != prev_y) {
+            for (auto [x, t] : need_to_calc) {
+                int cur = get_cnt_x(x) + get_cnt_y(t) - root->get(x);
+                // int xxx = get_cnt_x(x);
+                // int xxy = get_cnt_y(t);
+                // int xxz = root->get(x);
+                if (cur > res) {
+                    res = cur;
+                    p = x;
+                    q = t;
+                }
+            }
+            need_to_calc.clear();
+        }
+        root->add_x(l, r, type);
+        need_to_calc.pb({l, y});
+        need_to_calc.pb({r, y});
+        prev_y = y;
     }
-    cout << res << '\n';
+
+    for (auto [x, y] : need_to_calc) {
+        int cur = get_cnt_x(x) + get_cnt_y(y) - root->get(x);
+        if (cur > res) {
+            res = cur;
+            p = x;
+            q = y;
+        }
+    }
+
+    cout << p << ' ' << q << '\n';
 }
-
 
 int main() {
     fast_input;
