@@ -35,137 +35,115 @@ using vpii = vector <pii>;
 #define fast_input ios_base::sync_with_stdio(0); cin.tie(0);
 #define cin_arr(_x) for (int &x : a) cin >> x;
 
-const int INF = 1e9;
-const ll INFLL = 1e18;
-const int MOD = 1e9 + 7;
-
-struct query{
-    int x, y;
-    int id;
-};
-struct dot{
-    int l, r;
-    int y;
-    int type;
-};
-
 struct Node {
     int tl, tr;
-    Node *l = 0, *r = 0;
-    int add = 0;
+    int sum;
+    int cnt_uniq;
+    int cnt_diff;
 
-    Node (int tl_, int tr_) : tl(tl_), tr(tr_) {}
-
-    void push() {
-        if (!l && tl != tr) {
-            int tm = (tl + tr) >> 1;
-            l = new Node(tl, tm);
-            l->add = add;
-            r = new Node(tm + 1, tr);
-            r->add = add;
-            add = 0;
-        }
-    }
-    
-    void add_x(int ql, int qr, int x) {
-        if (ql > qr) {
+    Node *L = 0, *R = 0;
+    Node(int tl_, int tr_) : tl(tl_), tr(tr_), sum(0), cnt_uniq(0), cnt_diff(0) {
+        if (tl == tr) {
             return;
         }
-        if (tl == ql && tr == qr) {
-            add += x;
+        int tm = (tl + tr) >> 1;
+        L = new Node(tl, tm);
+        R = new Node(tm + 1, tr);
+    }
+
+    void copy() {
+        L = new Node(*L);
+        R = new Node(*R);
+    }
+
+    void add(int pos, int x) {
+        if (tl == tr) {
+            sum = max(sum + x, 0);
+            if (sum) {
+                cnt_diff = 1;
+            } else {
+                cnt_diff = 0;
+            }
+            if (sum == 1) {
+                cnt_uniq = 1;
+            } else {
+                cnt_uniq = 0;
+            }
         } else {
-            push();
+            copy();
             int tm = (tl + tr) >> 1;
-            l->add_x(ql, min(tm, qr), x);
-            r->add_x(max(tm + 1, ql), qr, x);
+            if (pos <= tm) {
+                L->add(pos, x);
+            } else {
+                R->add(pos, x);
+            }
+            sum = L->sum + R->sum;
+            cnt_uniq = L->cnt_uniq + R->cnt_uniq;
+            cnt_diff = L->cnt_diff + R->cnt_diff;
         }
     }
 
-    int get(int pos) {
+    int get_count(int pos) {
         if (tl == tr) {
-            return add;
+            return sum;
         }
-        push();
         int tm = (tl + tr) >> 1;
         if (pos <= tm) {
-            return add + l->get(pos);
+            return L->get_count(pos);
         } else {
-            return add + r->get(pos);
+            return R->get_count(pos);
         }
     }
 };
 
-const int MAXN = 2e5;
-int n;
-int lx[MAXN], rx[MAXN];
-int ly[MAXN], ry[MAXN];
-vector<dot> d;
-
-// кол-во отрезков которым принадлежит x
-int get_cnt_x(int x) {
-    return n - ((lower_bound(rx, rx + n, x) - rx) + n - (upper_bound(lx, lx + n, x) - lx));
-}
-
-// кол-во отрезков которым принадлежит y
-int get_cnt_y(int y) {
-    return n - ((lower_bound(ry, ry + n, y) - ry) + n - (upper_bound(ly, ly + n, y) - ly));
-}
+const int MAXN = 4e5;
+int n, m;
+Node *version[MAXN];
 
 void solve() {
-    cin >> n;
+    cin >> n >> m;
+    version[0] = new Node(1, MAXN);
 
+    int sum = 0;
     for (int i = 0; i < n; i++) {
-        cin >> lx[i] >> rx[i];
-        cin >> ly[i] >> ry[i];
-        d.pb({lx[i], rx[i], ly[i], 1});
-        d.pb({lx[i], rx[i], ry[i], -1});
-    }
-
-    sort(lx, lx + n); sort(rx, rx + n);
-    sort(ly, ly + n); sort(ry, ry + n);
-
-    sort(all(d), [](dot a, dot b) {
-        return a.y < b.y || (a.y == b.y && a.type > b.type);
-    });
-
-    int res = 0;
-    int p = -1, q = -1;
-
-    Node *root = new Node(0, INF);
-
-    int prev_y = -1;
-    vpii need_to_calc;
-    for (auto [l, r, y, type] : d) {
-        if (y != prev_y) {
-            for (auto [x, t] : need_to_calc) {
-                int cur = get_cnt_x(x) + get_cnt_y(t) - root->get(x);
-                // int xxx = get_cnt_x(x);
-                // int xxy = get_cnt_y(t);
-                // int xxz = root->get(x);
-                if (cur > res) {
-                    res = cur;
-                    p = x;
-                    q = t;
-                }
-            }
-            need_to_calc.clear();
-        }
-        root->add_x(l, r, type);
-        need_to_calc.pb({l, y});
-        need_to_calc.pb({r, y});
-        prev_y = y;
-    }
-
-    for (auto [x, y] : need_to_calc) {
-        int cur = get_cnt_x(x) + get_cnt_y(y) - root->get(x);
-        if (cur > res) {
-            res = cur;
-            p = x;
-            q = y;
+        string s;
+        cin >> s;
+        if (s == "add") {
+            int x;
+            cin >> x;
+            version[i + 1] = new Node(*version[i]);
+            version[i + 1]->add(x, 1);
+        } else if (s == "remove") {
+            int x;
+            cin >> x;
+            version[i + 1] = new Node(*version[i]);
+            version[i + 1]->add(x, -1);
+        } else if (s == "different") {
+            int y;
+            cin >> y;
+            int v = (y + sum) % (i + 1);
+            int res = version[v]->cnt_diff;
+            cout << res << '\n';
+            sum += res;
+            version[i + 1] = new Node(*version[v]);
+        } else if (s == "unique") {
+            int y;
+            cin >> y;
+            int v = (y + sum) % (i + 1);
+            int res = version[v]->cnt_uniq;
+            cout << res << '\n';
+            sum += res;
+            version[i + 1] = new Node(*version[v]);
+        } else {
+            int x, y;
+            cin >> x >> y;
+            int v = (y + sum) % (i + 1);
+            int res = version[v]->get_count(x);
+            cout << res << '\n';
+            sum += res;
+            version[i + 1] = new Node(*version[v]);
         }
     }
-
-    cout << p << ' ' << q << '\n';
 }
 
 int main() {
