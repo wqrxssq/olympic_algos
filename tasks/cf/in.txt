@@ -1,9 +1,7 @@
-10
-8 3 0 9 7 0 7 9 0 7
-3 0 3 9 7 8 6 4 2 7
+abcda
 5
-+ 4 5
-? 8 9
-+ 9 9
-? 4 6
-? 3 8
+palindrome? 1 5
+palindrome? 1 1
+change 4 b
+palindrome? 1 5
+palindrome? 2 4

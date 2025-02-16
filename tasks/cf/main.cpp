@@ -56,90 +56,96 @@ mt19937 rnd(static_cast<unsigned int>(chrono::steady_clock().now().time_since_ep
 #define setpr(_x) cout << setprecision(_x) << fixed
 #define debug(x) cout << __FUNCTION__ << ": " << #x " = " << (x) << endl
 
+const int power = 31;
 const int MAXN = 1e5;
 int n;
-int a[MAXN];
-int b[MAXN];
-ll pref[MAXN + 1];
+ll p[MAXN];
 pll t[MAXN << 2];
+string s;
 
-void build_pref() {
-    for (int i = 0; i < n; i++) {
-        pref[i + 1] = pref[i] + b[i];
+void init() {
+    p[0] = 1;
+    for (int i = 1; i < n; i++) {
+        p[i] = p[i - 1] * power;
     }
-}
-
-// [l, r)
-ll sum(int l, int r) {
-    return pref[r] - pref[l];
-}
-
-pll merge(pll v, pll vl, pll vr, int tl, int tr) {
-    return {vl.ff + vr.ff + sum(tl, tr + 1) * v.ss, v.ss};
 }
 
 void build(int tl, int tr, int v) {
     if (tl == tr) {
-        t[v] = {a[tl], 0};
+        t[v] = {s[tl] - 'a' + 1, s[tl] - 'a' + 1};
     } else {
         int tm = (tl + tr) >> 1;
         build(tl, tm, v << 1);
         build(tm + 1, tr, v << 1 | 1);
-        t[v].ff = t[v << 1].ff + t[v << 1 | 1].ff;
+        t[v] = {t[v << 1].ff * p[tr - tm] + t[v << 1 | 1].ff,
+               t[v << 1].ss + t[v << 1 | 1].ss * p[tm - tl + 1]};
     }
 }
 
-void add(int tl, int tr, int v, int l, int r) {
-    if (l > r) {
-        return;
-    }
-    if (tl == l && tr == r) {
-        t[v].ff += sum(l, r + 1);
-        t[v].ss++;
+void change(int tl, int tr, int v, int pos, int val) {
+    if (tl == tr) {
+        t[v] = {val, val};
     } else {
         int tm = (tl + tr) >> 1;
-        add(tl, tm, v << 1, l, min(tm, r));
-        add(tm + 1, tr, v << 1 | 1, max(tm + 1, l), r);
-        t[v] = merge(t[v], t[v << 1], t[v << 1 | 1], tl, tr);
+        if (pos <= tm) {
+            change(tl, tm, v << 1, pos, val);
+        } else {
+            change(tm + 1, tr, v << 1 | 1, pos, val);
+        }
+        t[v] = {t[v << 1].ff * p[tr - tm] + t[v << 1 | 1].ff,
+               t[v << 1].ss + t[v << 1 | 1].ss * p[tm - tl + 1]};
     }
 }
 
-ll query(int tl, int tr, int v, int l, int r) {
-    if (l > r) {
-        return 0;
-    }
+pll get_hashes(int tl, int tr, int v, int l, int r) {
     if (tl == l && tr == r) {
-        return t[v].ff;
+        return t[v];
     }
     int tm = (tl + tr) >> 1;
-    return query(tl, tm, v << 1, l, min(tm, r)) + query(tm + 1, tr, v << 1 | 1, max(tm + 1, l), r) + sum(l, r + 1) * t[v].ss;
+    if (r <= tm) {
+        return get_hashes(tl, tm, v << 1, l, r);
+    }
+    if (l > tm) {
+        return get_hashes(tm + 1, tr, v << 1 | 1, l, r);
+    }
+    pll hl = get_hashes(tl, tm, v << 1, l, tm);
+    pll hr = get_hashes(tm + 1, tr, v << 1 | 1, tm + 1, r);
+    return {hl.ff * p[r - tm] + hr.ff, 
+            hl.ss + hr.ss * p[tm - l + 1]};
 }
 
 void solve() {
-    cin >> n;
-    for (int i = 0; i < n; i++) {
-        cin >> a[i];
-    }
-    for (int i = 0; i < n; i++) {
-        cin >> b[i];
-    }
+    cin >> s;
+    n = sz(s);
 
-    build_pref();
+    init();
     build(0, n - 1, 1);
 
     int q;
     cin >> q;
     while (q--) {
-        char c;
-        int l, r;
-        cin >> c >> l >> r;
-        if (c == '+') {
-            add(0, n - 1, 1, l, r);
+        string m;
+        cin >> m;
+        if (m == "palindrome?") {
+            int l, r;
+            cin >> l >> r;
+            l--; r--;
+            pll h = get_hashes(0, n - 1, 1, l, r);
+            if (h.ff == h.ss) {
+                cout << "Yes\n";
+            } else {
+                cout << "No\n";
+            }
         } else {
-            cout << query(0, n - 1, 1, l, r) << '\n';
+            int pos;
+            char c;
+            cin >> pos >> c;
+            pos--;
+            change(0, n - 1, 1, pos, c - 'a' + 1);
         }
     }
 }
+
 
 int main() {
     fast_input;
