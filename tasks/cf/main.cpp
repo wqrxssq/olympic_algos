@@ -27,7 +27,7 @@ using vpii = vector <pii>;
 
 #define all(_x) _x.begin(), _x.end()
 #define rall(_x) _x.rbegin(), _x.rend()
-#define sz(_x) (int)_x.size()
+// #define sz(_x) (int)_x.size()
 #define ff first
 #define ss second
 #define pb push_back
@@ -35,112 +35,250 @@ using vpii = vector <pii>;
 #define fast_input ios_base::sync_with_stdio(0); cin.tie(0);
 #define cin_arr(_x) for (int &x : a) cin >> x;
 
+mt19937 rnd((int)chrono::steady_clock::now().time_since_epoch().count());
+
 const int INF = 1e9;
 const int MOD = 1e9 + 7;
 const double EPS = 1e-6;
 
-struct rectangle {
-    // x1 <= x2
-    // y1 <= y2
-    int x1, x2;
-    int y1, y2;
+struct Node {
+    int priority;
+
+    int value, sum, lazy;
+
+    char c;
+    int sz;
+
+    Node* l = nullptr;
+    Node* r = nullptr;
+
+    Node (int _value) : priority(rnd()), value(_value), sum(_value), lazy(1), sz(1) {
+    }
 };
 
-rectangle intersect(rectangle a, rectangle b) {
-    rectangle res = {max(a.x1, b.x1), min(a.x2, b.x2), max(a.y1, b.y1), min(a.y2, b.y2)};
-    if (res.x1 > res.x2 || res.y1 > res.y2) {
-        res = {0, 0, 0, 0};
+const int POWER = 31;
+const int MAXN = 1e6;
+int n;
+int del[MAXN];
+
+string s;
+int p[MAXN], rev_p[MAXN];
+int h[MAXN];
+
+Node* t;
+int len = 0;
+
+int add(int a,int b) {
+    return a + b >= MOD ? a + b - MOD : a + b;
+}
+
+int mult(int a,int b) {
+    return 1LL * a * b % MOD;
+}
+
+int getSz(Node* t) {
+    if (t == nullptr) {
+        return 0;
+    }
+    return t->sz;
+}
+
+int getSum(Node* t) {
+    if (t == nullptr) {
+        return 0;
+    }
+    return t->sum;
+}
+
+int bpow(int a, int n, int mod) {
+    int res = 1;
+    while (n) {
+        if (n & 1) { 
+            res = 1LL * res * a % mod;
+        }
+        n >>= 1;
+        a = 1LL * a * a % mod;
     }
     return res;
 }
 
-const int MAXN = 128;
-const int MAXH = 7;
-int n, m;
-rectangle a[MAXN][MAXN];
-rectangle sparse_table[MAXH][MAXH][MAXN][MAXN];
+void push(Node *t) {
+    if (t == nullptr) {
+        return;
+    }
+    if(t->lazy == 1) {
+        return;
+    }
 
-int log(int n) {
-    return 31 - __builtin_clz(n);
+    if (t->l != nullptr) {
+        t->l->lazy = mult(t->l->lazy, t->lazy);
+        t->l->sum = mult(t->l->sum, t->lazy);
+        t->l->value = mult(t->l->value, t->lazy);
+    }
+
+    if (t->r != nullptr) {
+        t->r->lazy = mult(t->r->lazy, t->lazy);
+        t->r->sum = mult(t->r->sum, t->lazy);
+        t->r->value = mult(t->r->value, t->lazy);
+    }
+
+    t->lazy = 1;
 }
 
-rectangle rmq(int x1, int y1, int x2, int y2) {
-    // найти наибольшую степень двойки в которую "влазит" их разность
-    int t1 = log(x2 - x1);
-    int t2 = log(y2 - y1);
-    // минимум находится из 4 квадратов
-    return intersect(intersect(sparse_table[t1][t2][x1][y1], sparse_table[t1][t2][x1][y2 - (1 << t2)]),
-           intersect(sparse_table[t1][t2][x2 - (1 << t1)][y1], sparse_table[t1][t2][x2 - (1 << t1)][y2 - (1 << t2)]));
+void update(Node *t) {
+    t->sz = getSz(t->l) + getSz(t->r) + 1;
+    t->sum = add(add(getSum(t->l), getSum(t->r)), t->value);
 }
 
-void build() {
-    for (int i = 0; i < n; i++)
-        for (int j = 0; j < m; j++)
-            sparse_table[0][0][i][j] = a[i][j];
-    for (int k = 0; (1 << (k + 1)) <= n; k++)
-        for (int j = 0; j < m; j++)
-            for (int i = 0; i + (1 << k) < n; i++)
-                sparse_table[k + 1][0][i][j] = intersect(sparse_table[k][0][i][j], sparse_table[k][0][i + (1 << k)][j]);
-    for (int k = 0; (1 << (k + 1)) <= m; k++)
-        for (int i = 0; i < n; i++)
-            for (int j = 0; j + (1 << k) < m; j++)
-                sparse_table[0][k + 1][i][j] = intersect(sparse_table[0][k][i][j], sparse_table[0][k][i][j + (1 << k)]);
-     
-    for (int i = 0; (1 << (i + 1)) <= n; i++)
-        for (int j = 0; (1 << (j + 1)) <= m; j++)
-            for (int z = 0; z + (1 << i) < n; z++)
-                for (int k = 0; k + (1 << j) < m; k++)
-                    sparse_table[i + 1][j + 1][z][k] = intersect(intersect(sparse_table[i][j][z][k],
-                                                           sparse_table[i][j][z][k + (1 << j)]),
-                                                           intersect(sparse_table[i][j][z + (1 << i)][k],
-                                                               sparse_table[i][j][z + (1 << i)][k + (1 << j)]));
+pair<Node*, Node*> split(Node *t, int x) {
+    if (t == nullptr) {
+        return {nullptr, nullptr};
+    }
+    push(t);
+
+    int sz = getSz(t->l) + 1;
+    if (x >= sz) {
+        auto [l, r] = split(t->r, x - sz);
+        t->r = l;
+        update(t);
+        return {t, r};
+    } else {
+        auto [l, r] = split(t->l, x);
+        t->l = r;
+        update(t);
+        return {l, t};
+    }
 }
 
-int gen(int A, int B, int v0) {
-    return (1LL * A * v0 + B) % MOD;
+Node* merge(Node* l, Node* r) {
+    if (l == nullptr) {
+        return r;
+    }
+    if (r == nullptr) {
+        return l;
+    }
+
+    push(l);
+    push(r);
+
+    if (l->priority > r->priority) {
+        l->r = merge(l->r, r);
+        update(l);
+        return l;
+    } else {
+        r->l = merge(l, r->l);
+        update(r);
+        return r;
+    }
 }
 
-int get_s(rectangle a) {
-    return (1LL * (a.x2 - a.x1) * (a.y2 - a.y1)) % MOD;
+Node* erase(int x) {
+    auto [l, r] = split(t, x);
+    auto [l1, r1] = split(r, 1);
+
+    if (r1 != nullptr) {
+        r1->lazy = mult(r1->lazy, rev_p[1]);
+        r1->sum = mult(r1->sum, rev_p[1]);
+        r1->value = mult(r1->value, rev_p[1]);
+    }
+    return merge(l, r1);
+}
+
+Node* insert(int x, int val){
+    auto [l, r] = split(t, x);
+    Node* newNode = new Node(val);
+
+    if(r != nullptr){
+        r->lazy = mult(r->lazy, p[1]);
+        r->sum = mult(r->sum, p[1]);
+        r->value = mult(r->value, POWER);
+    }
+
+    return merge(merge(l, newNode), r);
+}
+
+bool preiod(int x) {
+    auto [l, r] = split(t, len - x);
+    int s1 = l->sum;
+
+    t = merge(l, r);
+
+    auto [l1, r1] = split(t, x);
+    int s2 = r1->sum;
+    t = merge(l1, r1);
+
+    return s1 == mult(s2, rev_p[x]);
+}
+
+void init() {
+    p[0] = 1;
+    rev_p[0] = 1;
+
+    for (int i = 1; i < MAXN; i++) {
+        p[i] = mult(p[i - 1], POWER);
+        rev_p[i] = bpow(p[i], MOD-2, MOD);
+    }
+
+    for (int i = 2; i < MAXN; i++){
+        if (!del[i]) {
+            for (int j = i; j < MAXN; j += i) {
+                if (!del[j]) {
+                    del[j] = i;
+                }
+            }
+        }
+    }
 }
 
 void solve() {
-    cin >> n >> m;
+    init();
+    cin >> n >> s;
+
+    t = nullptr;
     for (int i = 0; i < n; i++) {
-        for (int j = 0; j < m; j++) {
-            int x1, y1, x2, y2;
-            cin >> x1 >> y1 >> x2 >> y2;
-            if (x1 > x2)
-                swap(x1, x2);
-            if (y1 > y2)
-                swap(y1, y2);
-            a[i][j] = {x1, x2, y1, y2};
-        }
+        h[i] = mult((s[i] - 'a' + 1), p[i+1]);
+        Node* newNode = new Node(h[i]);
+        t = merge(t, newNode);
     }
 
-    build();
+    len = n;
+    del[1] = 1;
 
     int q;
     cin >> q;
-    int A, B, v0;
-    cin >> A >> B >> v0;
-    int res = 0;
-    for (int i = 0; i < q; i++) {
-        v0 = gen(A, B, v0);
-        int r1 = v0 % n;
-        v0 = gen(A, B, v0);
-        int c1 = v0 % m;
-        v0 = gen(A, B, v0);
-        int r2 = v0 % n;
-        v0 = gen(A, B, v0);
-        int c2 = v0 % m;
-
-        int r_low = min(r1, r2), r_high = max(r1, r2) + 1;
-        int c_low = min(c1, c2), c_high = max(c1, c2) + 1;
-
-        res = (res + get_s(rmq(r_low, c_low, r_high, c_high))) % MOD;
+    while (q--) {
+        char tp;
+        int x;
+        cin >> tp;
+        if (tp == '?') {
+            if (len == 1) {
+                cout << 1 << '\n';
+            } else if (preiod(1)) {
+                cout << 1 << '\n';
+            } else if (del[len] == len) {
+                cout << len << '\n';
+            } else {
+                int x = len;
+                int x1 = len;
+                while (x1 != 1) {
+                    if (preiod(x / del[x1])) {
+                        x /= del[x1];
+                    }
+                    x1 /= del[x1];
+                }
+                cout << x << '\n';
+            }
+        } else if (tp == '-') {
+            cin >> x;
+            --len;
+            t = erase(x);
+        } else {
+            char c;
+            cin >> x >> c;
+            len++;
+            t = insert(x, mult((c - 'a' + 1), p[x + 1]));
+        }
     }
-    cout << res << '\n';
 }
 
 int main() {
