@@ -99,15 +99,12 @@ void solve() {
 
     int end_left = binpow(3, left_half);
     for (int mask = 0; mask < end_left; mask++) {
+        vpii choices = enc(mask, left_half);
         // d1 = L - M
         // d2 = M - W
         int L = 0;
         int d1 = 0, d2 = 0;
-        int pos = 0;
-        int cur_mask = mask;
-        while (cur_mask) {
-            int choice = cur_mask % 3;
-
+        for (auto [choice, pos] : choices) {
             if (choice == 0) { // LM
                 L += w[pos].a;
                 d1 += w[pos].a - w[pos].b;
@@ -120,15 +117,6 @@ void solve() {
                 d1 += w[pos].a;
                 d2 += -w[pos].c;
             }
-
-            pos++;
-            cur_mask /= 3;
-        }
-        while (pos < left_half) {
-            L += w[pos].a;
-            d1 += w[pos].a - w[pos].b;
-            d2 += w[pos].b;
-            pos++;
         }
 
         if (q.contains({d1, d2})) {
@@ -146,34 +134,22 @@ void solve() {
 
     int end_right = binpow(3, right_half);
     for (int mask = 0; mask < end_right; mask++) {
+        vpii choices = enc(mask, right_half);
         int L = 0;
         int d1 = 0, d2 = 0;
-        int pos = left_half;
-        int cur_mask = mask;
-        while (cur_mask) {
-            int choice = cur_mask % 3;
-
-            if (choice == 0) { // LM
-                L += w[pos].a;
-                d1 += w[pos].a - w[pos].b;
-                d2 += w[pos].b;
-            } else if (choice == 1) { // MW
-                d1 += -w[pos].b;
-                d2 += w[pos].b - w[pos].c;
-            } else { // LW
-                L += w[pos].a;
-                d1 += w[pos].a;
-                d2 += -w[pos].c;
+        for (auto [choice, pos] : choices) {
+            if (choice == 0) {
+                L += w[pos + left_half].a;
+                d1 += w[pos + left_half].a - w[pos + left_half].b;
+                d2 += w[pos + left_half].b;
+            } else if (choice == 1) {
+                d1 += -w[pos + left_half].b;
+                d2 += w[pos + left_half].b - w[pos + left_half].c;
+            } else {
+                L += w[pos + left_half].a;
+                d1 += w[pos + left_half].a;
+                d2 += -w[pos + left_half].c;
             }
-
-            pos++;
-            cur_mask /= 3;
-        }
-        while (pos < n) {
-            L += w[pos].a;
-            d1 += w[pos].a - w[pos].b;
-            d2 += w[pos].b;
-            pos++;
         }
 
         if (q.contains({-d1, -d2}) && L + q[{-d1, -d2}].ff > max_L) {
