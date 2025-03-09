@@ -55,41 +55,167 @@ const ll INFLL = 1e18;
 const int mod = 1e9 + 7;
 const double eps = 1e-6;
 
-const int MAXN = 1e5;
+struct item {
+    int a, b, c;
+};
 
-vi g[MAXN];
-int is_terminal[MAXN];
-int cost[MAXN];
-
-int alpha_beta_pruning(int v, int alpha = -INF, int beta = INF, bool is_max_play = true) {
-    if (is_terminal[v]) {
-        return cost[v];
+int binpow(int base, int n) {
+    if (n == 0) {
+        return 1;
     }
-    if (is_max_play) {
-        for (int u : g[v]) {
-            alpha = max(alpha, alpha_beta_pruning(u, alpha, beta, is_max_play ^ 1));
-            // beta pruning, min won't go to this vertex
-            if (alpha >= beta) {
-                return alpha;
-            }
-        }
-        return alpha;
+    if (n & 1) {
+        return binpow(base, n - 1) * base;
     } else {
-        for (int u : g[v]) {
-            beta = min(beta, alpha_beta_pruning(u, alpha, beta, is_max_play ^ 1));
-            // alpha pruning, max won't go to this vertex
-            if (alpha >= beta) {
-                return beta;
-            }
-        }
-        return beta;
+        int temp = binpow(base, n >> 1);
+        return temp * temp;
     }
+}
+
+vpii enc(int mask, int len) {
+    int pos = 0;
+    vpii res;
+    while (mask) {
+        res.pb({mask % 3, pos++});
+        mask /= 3;
+    }
+    while (res.size() < len) {
+        res.pb({0, pos++});
+    }
+    return res;
 }
 
 void solve() {
     int n;
-    cin >> n >> a >> b >> c >> m;
-    cout << alpha_beta_pruning(0, (1 << n) - 1) << '\n';
+    cin >> n;
+    vector<item> w(n);
+    for (auto &[a, b, c] : w) {
+        cin >> a >> b >> c;
+    }
+
+    int left_half = (n / 2);
+    int right_half = n - left_half;
+
+    map<pii, pii> q;
+
+    int end_left = binpow(3, left_half);
+    for (int mask = 0; mask < end_left; mask++) {
+        // d1 = L - M
+        // d2 = M - W
+        int L = 0;
+        int d1 = 0, d2 = 0;
+        int pos = 0;
+        int cur_mask = mask;
+        while (cur_mask) {
+            int choice = cur_mask % 3;
+
+            if (choice == 0) { // LM
+                L += w[pos].a;
+                d1 += w[pos].a - w[pos].b;
+                d2 += w[pos].b;
+            } else if (choice == 1) { // MW
+                d1 += -w[pos].b;
+                d2 += w[pos].b - w[pos].c;
+            } else { // LW
+                L += w[pos].a;
+                d1 += w[pos].a;
+                d2 += -w[pos].c;
+            }
+
+            pos++;
+            cur_mask /= 3;
+        }
+        while (pos < left_half) {
+            L += w[pos].a;
+            d1 += w[pos].a - w[pos].b;
+            d2 += w[pos].b;
+            pos++;
+        }
+
+        if (q.contains({d1, d2})) {
+            if (q[{d1, d2}].ff < L) {
+                q[{d1, d2}] = {L, mask};
+            }
+        } else {
+            q[{d1, d2}] = {L, mask};
+        }
+    }
+
+    int max_L = -INF;
+    int best_mask_left = -1;
+    int best_mask_right = -1;
+
+    int end_right = binpow(3, right_half);
+    for (int mask = 0; mask < end_right; mask++) {
+        int L = 0;
+        int d1 = 0, d2 = 0;
+        int pos = left_half;
+        int cur_mask = mask;
+        while (cur_mask) {
+            int choice = cur_mask % 3;
+
+            if (choice == 0) { // LM
+                L += w[pos].a;
+                d1 += w[pos].a - w[pos].b;
+                d2 += w[pos].b;
+            } else if (choice == 1) { // MW
+                d1 += -w[pos].b;
+                d2 += w[pos].b - w[pos].c;
+            } else { // LW
+                L += w[pos].a;
+                d1 += w[pos].a;
+                d2 += -w[pos].c;
+            }
+
+            pos++;
+            cur_mask /= 3;
+        }
+        while (pos < n) {
+            L += w[pos].a;
+            d1 += w[pos].a - w[pos].b;
+            d2 += w[pos].b;
+            pos++;
+        }
+
+        if (q.contains({-d1, -d2}) && L + q[{-d1, -d2}].ff > max_L) {
+            max_L = L + q[{-d1, -d2}].ff;
+            best_mask_left = q[{-d1, -d2}].ss;
+            best_mask_right = mask;
+        }
+    }
+
+    if (best_mask_left == -1) {
+        cout << "Impossible\n";
+    } else {
+        vpii left = enc(best_mask_left, left_half);
+        vpii right = enc(best_mask_right, right_half);
+
+        for (auto [choice, pos] : left) {
+            switch (choice) {
+            case 0:
+                cout << "LM\n";
+                break;
+            case 1:
+                cout << "MW\n";
+                break;
+            default:
+                cout << "LW\n";
+                break;
+            }
+        }
+        for (auto [choice, pos] : right) {
+            switch (choice) {
+            case 0:
+                cout << "LM\n";
+                break;
+            case 1:
+                cout << "MW\n";
+                break;
+            default:
+                cout << "LW\n";
+                break;
+            }
+        }
+    }
 }
 
 int main() {
