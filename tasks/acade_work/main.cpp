@@ -1,6 +1,5 @@
-// #pragma GCC optimize("O3,unroll-loops")
-// #pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt")
-  
+#pragma GCC optimize("O3,unroll-loops")
+
 #include <iostream>
 #include <algorithm>
 #include <set>
@@ -16,8 +15,9 @@
 #include <random>
 #include <chrono>
 #include <cstring>
+#include <iomanip>
 using namespace std;
-     
+
 #define all(_x) _x.begin(), _x.end()
 #define rall(_x) _x.rbegin(), _x.rend()
 #define pb push_back
@@ -55,143 +55,143 @@ const ll INFLL = 1e18;
 const int mod = 1e9 + 7;
 const double eps = 1e-6;
 
-struct item {
-    int a, b, c;
-};
+const ll BASE = 1000000000;
+const int KARATSUBA_STOP = 64;
 
-int binpow(int base, int n) {
-    if (n == 0) {
-        return 1;
+typedef vector<ll> bigInt;
+
+void normalize(bigInt& a) {
+    ll carry = 0;
+    for (int i = 0; i < sz(a); i++){
+        ll sum = a[i] + carry;
+        a[i] = sum % BASE;
+        carry = sum / BASE;
     }
-    if (n & 1) {
-        return binpow(base, n - 1) * base;
-    } else {
-        int temp = binpow(base, n >> 1);
-        return temp * temp;
+    while (carry) {
+        a.pb(carry % BASE);
+        carry /= BASE;
+    }
+    while (sz(a) > 1 && a.back() == 0) {
+        a.pop_back();
     }
 }
 
-vpii enc(int mask, int len) {
-    int pos = 0;
-    vpii res;
-    while (mask) {
-        res.pb({mask % 3, pos++});
-        mask /= 3;
+bigInt sum(const bigInt& a, const bigInt& b) {
+    int n = max(sz(a), sz(b));
+    bigInt res(n);
+    ll carry = 0;
+    for (int i = 0; i < n; i++){
+        ll x = (i < sz(a) ? a[i] : 0);
+        ll y = (i < sz(b) ? b[i] : 0);
+        ll sum = x + y + carry;
+        res[i] = sum % BASE;
+        carry = sum / BASE;
     }
-    while (res.size() < len) {
-        res.pb({0, pos++});
-    }
+    if (carry)
+        res.push_back(carry);
     return res;
+}
+bigInt sub(const bigInt& a, const bigInt& b) {
+    bigInt res = a;
+    ll carry = 0;
+    for (int i = 0; i < sz(res); i++) {
+        ll sub = (i < sz(b) ? b[i] : 0) + carry;
+        if (res[i] < sub){
+            res[i] += BASE;
+            res[i] -= sub;
+            carry = 1;
+        } else {
+            res[i] -= sub;
+            carry = 0;
+        }
+    }
+    while (sz(res) > 1 && res.back() == 0)
+        res.pop_back();
+    return res;
+}
+bigInt multiply_naive(const bigInt& a, const bigInt& b) {
+    bigInt res(sz(a) + sz(b));
+    for (int i = 0; i < sz(a); i++) {
+        ll carry = 0;
+        for (int j = 0; j < sz(b); j++) {
+            ll sum = a[i] * b[j] + res[i + j] + carry;
+            res[i + j] = sum % BASE;
+            carry = sum / BASE;
+        }
+        res[i + sz(b)] += carry;
+    }
+    normalize(res);
+    return res;
+}
+bigInt karatsuba(const bigInt& a, const bigInt& b){
+    if(a.empty() || b.empty())
+        return bigInt{0};
+    if(a.size() < KARATSUBA_STOP || b.size() < KARATSUBA_STOP)
+        return multiply_naive(a, b);
+
+    int n = max(a.size(), b.size());
+    int m = n / 2;
+
+    bigInt a_low(a.begin(), a.begin() + min((int)a.size(), m));
+    bigInt a_high(a.begin() + min((int)a.size(), m), a.end());
+    bigInt b_low(b.begin(), b.begin() + min((int)b.size(), m));
+    bigInt b_high(b.begin() + min((int)b.size(), m), b.end());
+    bigInt z0 = karatsuba(a_low, b_low);
+    bigInt z2 = karatsuba(a_high, b_high);
+    bigInt a_sum = sum(a_low, a_high);
+    bigInt b_sum = sum(b_low, b_high);
+    bigInt z1 = karatsuba(a_sum, b_sum);
+    z1 = sub(z1, z0);
+    z1 = sub(z1, z2);
+    int size = max({ sz(z0), sz(z1) + m, sz(z2) + 2 * m });
+    bigInt res(size);
+    for(int i = 0; i < sz(z0); i++)
+        res[i] += z0[i];
+    for(int i = 0; i < sz(z1); i++)
+        res[i + m] += z1[i];
+    for(int i = 0; i < sz(z2); i++)
+        res[i + 2 * m] += z2[i];
+
+    normalize(res);
+    return res;
+}
+bigInt s_to_bigInt(const string &s){
+    bigInt a;
+    for(int i = sz(s); i > 0; i -= 9){
+        int start = max(0, i - 9);
+        ll num = stoll(s.substr(start, i - start));
+        a.pb(num);
+    }
+    normalize(a);
+    return a;
 }
 
 void solve() {
-    int n;
-    cin >> n;
-    vector<item> w(n);
-    for (auto &[a, b, c] : w) {
-        cin >> a >> b >> c;
+    string s1, s2;
+    cin >> s1 >> s2;
+    bool is_neg = false;
+    if (s1[0] == '-') {
+        is_neg ^= 1;
+        s1 = s1.substr(1);
+    }
+    if (s2[0] == '-') {
+        is_neg ^= 1;
+        s2 = s2.substr(1);
     }
 
-    int left_half = (n / 2);
-    int right_half = n - left_half;
+    bigInt a = s_to_bigInt(s1);
+    bigInt b = s_to_bigInt(s2);
+    bigInt res = karatsuba(a, b);
 
-    map<pii, pii> q;
-
-    int end_left = binpow(3, left_half);
-    for (int mask = 0; mask < end_left; mask++) {
-        vpii choices = enc(mask, left_half);
-        // d1 = L - M
-        // d2 = M - W
-        int L = 0;
-        int d1 = 0, d2 = 0;
-        for (auto [choice, pos] : choices) {
-            if (choice == 0) { // LM
-                L += w[pos].a;
-                d1 += w[pos].a - w[pos].b;
-                d2 += w[pos].b;
-            } else if (choice == 1) { // MW
-                d1 += -w[pos].b;
-                d2 += w[pos].b - w[pos].c;
-            } else { // LW
-                L += w[pos].a;
-                d1 += w[pos].a;
-                d2 += -w[pos].c;
-            }
-        }
-
-        if (q.contains({d1, d2})) {
-            if (q[{d1, d2}].ff < L) {
-                q[{d1, d2}] = {L, mask};
-            }
-        } else {
-            q[{d1, d2}] = {L, mask};
-        }
+    is_neg &= !(sz(res) == 1 && res[0] == 0);
+    if (is_neg) {
+        cout << '-';
     }
-
-    int max_L = -INF;
-    int best_mask_left = -1;
-    int best_mask_right = -1;
-
-    int end_right = binpow(3, right_half);
-    for (int mask = 0; mask < end_right; mask++) {
-        vpii choices = enc(mask, right_half);
-        int L = 0;
-        int d1 = 0, d2 = 0;
-        for (auto [choice, pos] : choices) {
-            if (choice == 0) {
-                L += w[pos + left_half].a;
-                d1 += w[pos + left_half].a - w[pos + left_half].b;
-                d2 += w[pos + left_half].b;
-            } else if (choice == 1) {
-                d1 += -w[pos + left_half].b;
-                d2 += w[pos + left_half].b - w[pos + left_half].c;
-            } else {
-                L += w[pos + left_half].a;
-                d1 += w[pos + left_half].a;
-                d2 += -w[pos + left_half].c;
-            }
-        }
-
-        if (q.contains({-d1, -d2}) && L + q[{-d1, -d2}].ff > max_L) {
-            max_L = L + q[{-d1, -d2}].ff;
-            best_mask_left = q[{-d1, -d2}].ss;
-            best_mask_right = mask;
-        }
+    cout << res.back();
+    for (int i = sz(res) - 2; i >= 0; i--) {
+        cout << setw(9) << setfill('0') << res[i];
     }
-
-    if (best_mask_left == -1) {
-        cout << "Impossible\n";
-    } else {
-        vpii left = enc(best_mask_left, left_half);
-        vpii right = enc(best_mask_right, right_half);
-
-        for (auto [choice, pos] : left) {
-            switch (choice) {
-            case 0:
-                cout << "LM\n";
-                break;
-            case 1:
-                cout << "MW\n";
-                break;
-            default:
-                cout << "LW\n";
-                break;
-            }
-        }
-        for (auto [choice, pos] : right) {
-            switch (choice) {
-            case 0:
-                cout << "LM\n";
-                break;
-            case 1:
-                cout << "MW\n";
-                break;
-            default:
-                cout << "LW\n";
-                break;
-            }
-        }
-    }
+    cout << '\n';
 }
 
 int main() {
