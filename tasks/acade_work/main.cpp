@@ -31,20 +31,34 @@ const int mod = 1e9 + 7;
 const double eps = 1e-8;
 
 struct SplayTree {
-    int key;
     int size;
+    int val, min_el;
+    bool is_rev = false;
     SplayTree *L = 0, *R = 0, *P = 0;
 
     SplayTree() {}
-    SplayTree(int _key) : key(_key), size(1) {}
+    SplayTree(int _val) : size(1), val(_val), min_el(_val) {}
 };
 
-ll get_size(SplayTree* v) {
+int get_size(SplayTree* v) {
     return (v ? v->size : 0);
+}
+int get_min(SplayTree* v) {
+    return (v ? v->min_el : INF);
 }
 
 void update(SplayTree* v) {
     v->size = get_size(v->L) + get_size(v->R) + 1;
+    v->min_el = min(min(get_min(v->L), get_min(v->R)), v->val);
+}
+
+void push(SplayTree* v) {
+    if (v->is_rev) {
+        if (v->L) v->L->is_rev = true;
+        if (v->R) v->R->is_rev = true;
+        swap(v->L, v->R);
+        v->is_rev = false;
+    }
 }
 
 void set_parent(SplayTree* child, SplayTree* parent) {
@@ -119,47 +133,38 @@ void splay(SplayTree* v) {
     }
 }
 
-/*
-find key and return node with this key, and this node becomes root.
-P.S. if where is no such key, find will return first bigger or first lower node, but never 0
-*/
-SplayTree* find(SplayTree*& v, int key) {
+SplayTree* get_kth(SplayTree*& v, int k) {
     if (!v) {
         return 0;
     }
     // as normal BST, but use splay before return
     while (true) {
-        if (v->key == key) {
+        push(v);
+        if (get_size(v->L) + 1 == k) {
+            if (v->L) {
+                push(v->L);
+            }
             splay(v);
             return v;
         }
-        if (key < v->key) {
-            if (!v->L) {
-                splay(v);
-                return v;
-            }
+        if (k <= get_size(v->L)) {
             v = v->L;
         } else {
-            if (!v->R) {
-                splay(v);
-                return v;
-            }
+            k -= get_size(v->L) + 1;
             v = v->R;
         }
     }
 }
 
-/*
-merge 2 nodes,
-all keys in L < all keys in R
-*/
 SplayTree* merge(SplayTree* L, SplayTree* R) {
     if (!L) return R;
     if (!R) return L;
 
     while (L->R) {
+        push(L);
         L = L->R;
     }
+    push(L);
     splay(L);
     L->R = R;
     R->P = L;
@@ -167,81 +172,61 @@ SplayTree* merge(SplayTree* L, SplayTree* R) {
     return L;
 }
 
-/*
-return 2 nodes [L, R], 
-where all keys in L < x, and all keys in R >= x
-*/
+// return [L, R], where sz(L) == k, so it means we get first k elements
 pair<SplayTree*, SplayTree*> split(SplayTree* v, int x) {
     if (!v) return {0, 0};
-    v = find(v, x);
-
-    if (v->key >= x) {
-        SplayTree* L = v->L;
-        set_parent(L, 0);
-        v->L = 0;
-        update(v);
-        return {L, v};
-    } else {
-        SplayTree* R = v->R;
-        set_parent(R, 0);
-        v->R = 0;
-        update(v);
-        return {v, R};
-    }
+    if (x <= 0) return {nullptr, v};
+    if (x >= get_size(v)) return {v, nullptr};
+    // v is k_th
+    // so it has k - 1 in left
+    v = get_kth(v, x);
+    SplayTree* R = v->R;
+    set_parent(R, 0);
+    v->R = 0;
+    update(v);
+    return {v, R};
 }
 
-void insert(SplayTree*& v, int key) {
-    find(v, key);
-    SplayTree* temp = new SplayTree(key);
-    auto [L, R] = split(v, key);
-    v = merge(L, merge(temp, R));
+void push_back(SplayTree*& v, int val) {
+    SplayTree* temp = new SplayTree(val);
+    v = merge(v, temp);
 }
 
-/*
-erase node with key = x, or do nothing, if where is no key = x
-*/
-void erase(SplayTree*& v, int x) {
-    v = find(v, x);
-    if (v && v->key == x) {
-        SplayTree* L = v->L;
-        SplayTree* R = v->R;
-        set_parent(L, 0);
-        set_parent(R, 0);
-        delete v;
-        v = merge(L, R);
-    }
+void reverse(SplayTree*& v, int l, int r) {
+    auto [M, R] = split(v, r + 1);
+    auto [L, T] = split(M, l);
+    T->is_rev = true;
+    v = merge(merge(L, T), R);
 }
 
-int get_kth(SplayTree*& v, int k) {
-    while (true) {
-        if (k == get_size(v->R) + 1) {
-            splay(v);
-            return v->key;
-        }
-        if (get_size(v->R) >= k) {
-            v = v->R;
-        } else {
-            k -= get_size(v->R) + 1;
-            v = v->L;
-        }
-    }
+int get_min(SplayTree*& v, int l, int r) {
+    auto [M, R] = split(v, r + 1);
+    auto [L, T] = split(M, l);
+    int res = get_min(T);
+    v = merge(merge(L, T), R);
+    return res;
 }
 
 void solve() {
-    int n;
-    cin >> n;
+    int n, m;
+    cin >> n >> m;
+
     SplayTree* root = 0;
+
     for (int i = 0; i < n; i++) {
-        string s;
         int x;
-        cin >> s >> x;
-        if (s == "0") {
-            cout << get_kth(root, x) << '\n';
-        } else if (s == "-1") {
-            erase(root, x);
-        } else {
-            insert(root, x);
-        }
+        cin >> x;
+        push_back(root, x);
+    }
+    for (int i = 0; i < m; i++) {
+        int type, l, r;
+        cin >> type >> l >> r;
+        l--;
+        r--;
+        if (type == 1)
+            reverse(root, l, r);
+        else
+            cout << get_min(root, l, r) << '\n';
     }
 }
 
