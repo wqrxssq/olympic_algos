@@ -138,7 +138,7 @@ void splay(SplayTree* v) {
 find key and return node with this key, and this node becomes root.
 P.S. if where is no such key, find will return first bigger or first lower node, but never 0
 */
-SplayTree* find(SplayTree* v, int key) {
+SplayTree* find(SplayTree*& v, int key) {
     if (!v) {
         return 0;
     }
@@ -205,25 +205,24 @@ pair<SplayTree*, SplayTree*> split(SplayTree* v, int x) {
 /*
 returns first node, which key >= x
 */
-SplayTree* lower_bound(SplayTree* v, int x) {
+SplayTree* lower_bound(SplayTree*& v, int x) {
     auto [L, R] = split(v, x);
     SplayTree* temp = R;
     while (temp && temp->L) temp = temp->L;
-    splay(temp);
     v = merge(L, R);
     return temp;
 }
 
-SplayTree* insert(SplayTree* v, int key, int val) {
+void insert(SplayTree*& v, int key, int val) {
     SplayTree* temp = new SplayTree(key, val);
     auto [L, R] = split(v, key);
-    return merge(L, merge(temp, R));
+    v = merge(L, merge(temp, R));
 }
 
 /*
 erase node with key = x, or do nothing, if where is no key = x
 */
-SplayTree* erase(SplayTree* v, int x) {
+void erase(SplayTree*& v, int x) {
     v = find(v, x);
     if (v && v->key == x) {
         SplayTree* L = v->L;
@@ -231,9 +230,8 @@ SplayTree* erase(SplayTree* v, int x) {
         set_parent(L, 0);
         set_parent(R, 0);
         delete v;
-        return merge(L, R);
+        v = merge(L, R);
     }
-    return v;
 }
 
 void solve() {
@@ -242,7 +240,7 @@ void solve() {
     SplayTree* root = 0;
     for (int i = 0; i < n; i++) {
         int x = 2 * i, val = i;
-        root = insert(root, x, val);
+        insert(root, x, val);
     }
 
     for (int i = 0; i < 2 * n; i++) {
@@ -256,12 +254,23 @@ void solve() {
             assert(v == 0 || v->key != i);
         }
 
-        root = erase(root, i);
+        erase(root, i);
         assert(find(root, i) == 0 || find(root, i)->key != i);
+    }
+}
+
+void solve2() {
+    int n;
+    cin >> n;
+    SplayTree* root = 0;
+    for (int i = 0; i < n; i++) {
+        int x = rand();
+        insert(root, x, 0);
     }
 }
 
 int main() {
     fast_input;
     solve();
+    solve2();
 }
