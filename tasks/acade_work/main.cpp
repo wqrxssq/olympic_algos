@@ -1,5 +1,3 @@
-#pragma GCC optimize("O3,unroll-loops")
-
 #include <iostream>
 #include <algorithm>
 #include <set>
@@ -18,53 +16,49 @@
 #include <iomanip>
 using namespace std;
 
-#define all(_x) _x.begin(), _x.end()
-#define rall(_x) _x.rbegin(), _x.rend()
-#define pb push_back
-#define sz(_x) (int)_x.size()
-#define ff first
-#define ss second
-#define cin_arr(a)for (int _ii = 0; _ii < (int)a.size(); _ii++)  \
-    cin >> a[_ii];
-#define display(a) for (auto _ii : a)                            \
-    cout << _ii << ' ';                                          \
-cout << '\n';
-#define display_pairs(a) for (auto _ii : a)                      \
-    cout << _ii.ff << ' ' << _ii.ss << '\n';
-#define display_matrix(a) for (auto _row : a)                    \
-{                                                                \
-    for (auto _cell : _row)                                      \
-        cout << _cell << ' ';                                    \
-    cout << '\n';                                                \
-}                                                                \
-cout << '\n'
-#define fast_input ios_base::sync_with_stdio(0); cin.tie(0)
-#define fast_interactive_input ios_base::sync_with_stdio(0)
-
-typedef long long ll;
-typedef unsigned long long ull;
-typedef vector<int> vi;
-typedef vector<ll> vll;
-typedef pair<int, int> pii;
-typedef pair <ll, ll> pll;
-typedef vector <pii> vpii;
-typedef vector <vi> vvi;
+using ll = long long;
+using ull = unsigned long long;
+using vi = vector<int>;
+using vll = vector<ll>;
+using pii = pair<int, int>;
+using pll = pair <ll, ll>;
+using vpii = vector <pii>;
+using vvi = vector <vi>;
 
 const int INF = 1e9;
 const ll INFLL = 1e18;
 const int mod = 1e9 + 7;
-const double eps = 1e-6;
+const double eps = 1e-8;
 
 struct SplayTree {
-    int key, val;
+    int key;
+    ll s;
     SplayTree *L = 0, *R = 0, *P = 0;
 
     SplayTree() {}
-    SplayTree(int _key, int _val) : key(_key), val(_val) {}
+    SplayTree(int _key) : key(_key), s(_key) {}
 };
+
+ll get_s(SplayTree* v) {
+    return (v ? v->s : 0);
+}
+
+void recalc_s(SplayTree* v) {
+    v->s = get_s(v->L) + get_s(v->R) + v->key;
+}
 
 void set_parent(SplayTree* child, SplayTree* parent) {
     if (child) child->P = parent;
+}
+void update_parent(SplayTree* child, SplayTree* old_child) {
+    SplayTree* parent = old_child->P;
+    if (parent) {
+        if (parent->L == old_child) {
+            parent->L = child;
+        } else {
+            parent->R = child;
+        }
+    }
 }
 
 void zig(SplayTree* v) {
@@ -73,12 +67,7 @@ void zig(SplayTree* v) {
         SplayTree* B = v->R;
 
         v->P = p->P;
-        if (p->P) {
-            if (p->P->L == p)
-                p->P->L = v;
-            else if (p->P->R == p)
-                p->P->R = v;
-        }
+        update_parent(v, p);
 
         v->R = p;
 
@@ -90,12 +79,7 @@ void zig(SplayTree* v) {
         SplayTree* B = v->L;
 
         v->P = p->P;
-        if (p->P) {
-            if (p->P->L == p)
-                p->P->L = v;
-            else if (p->P->R == p)
-                p->P->R = v;
-        }
+        update_parent(v, p);
 
         v->L = p;
 
@@ -104,11 +88,12 @@ void zig(SplayTree* v) {
 
         set_parent(B, p);
     }
+    recalc_s(p);
+    recalc_s(v);
 }
 
 void zig_zig(SplayTree* v) {
-    SplayTree* p = v->P;
-    zig(p);
+    zig(v->P);
     zig(v);
 }
 
@@ -178,6 +163,7 @@ SplayTree* merge(SplayTree* L, SplayTree* R) {
     splay(L);
     L->R = R;
     R->P = L;
+    recalc_s(L);
     return L;
 }
 
@@ -193,84 +179,61 @@ pair<SplayTree*, SplayTree*> split(SplayTree* v, int x) {
         SplayTree* L = v->L;
         set_parent(L, 0);
         v->L = 0;
+        recalc_s(v);
         return {L, v};
     } else {
         SplayTree* R = v->R;
         set_parent(R, 0);
         v->R = 0;
+        recalc_s(v);
         return {v, R};
     }
 }
 
-/*
-returns first node, which key >= x
-*/
-SplayTree* lower_bound(SplayTree*& v, int x) {
-    auto [L, R] = split(v, x);
-    SplayTree* temp = R;
-    while (temp && temp->L) temp = temp->L;
-    v = merge(L, R);
-    return temp;
-}
-
-void insert(SplayTree*& v, int key, int val) {
-    SplayTree* temp = new SplayTree(key, val);
+void insert(SplayTree*& v, int key) {
+    find(v, key);
+    if (v && v->key == key) {
+        return;
+    }
+    SplayTree* temp = new SplayTree(key);
     auto [L, R] = split(v, key);
     v = merge(L, merge(temp, R));
 }
 
-/*
-erase node with key = x, or do nothing, if where is no key = x
-*/
-void erase(SplayTree*& v, int x) {
-    v = find(v, x);
-    if (v && v->key == x) {
-        SplayTree* L = v->L;
-        SplayTree* R = v->R;
-        set_parent(L, 0);
-        set_parent(R, 0);
-        delete v;
-        v = merge(L, R);
-    }
+ll sum(SplayTree*& v, int l, int r) {
+    auto [M, R] = split(v, r + 1);
+    auto [L, T] = split(M, l);
+    ll ans = get_s(T);
+    v = merge(L, merge(T, R));
+    return ans;
 }
 
 void solve() {
     int n;
     cin >> n;
     SplayTree* root = 0;
+
+    ll prev = 0;
     for (int i = 0; i < n; i++) {
-        int x = 2 * i, val = i;
-        insert(root, x, val);
-    }
-
-    for (int i = 0; i < 2 * n; i++) {
-        SplayTree* v = find(root, i);
-        assert(v == root);
-
-        if (i % 2 == 0) {
-            assert(v != 0);
-            assert(v->key == i);
+        char type;
+        cin >> type;
+        if (type == '+') {
+            int x;
+            cin >> x;
+            x = (x + prev) % INF;
+            insert(root, x);
+            prev = 0;
         } else {
-            assert(v == 0 || v->key != i);
+            int l, r;
+            cin >> l >> r;
+            prev = sum(root, l, r);
+            cout << prev << '\n';
         }
-
-        erase(root, i);
-        assert(find(root, i) == 0 || find(root, i)->key != i);
-    }
-}
-
-void solve2() {
-    int n;
-    cin >> n;
-    SplayTree* root = 0;
-    for (int i = 0; i < n; i++) {
-        int x = rand();
-        insert(root, x, 0);
     }
 }
 
 int main() {
-    fast_input;
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
     solve();
-    solve2();
 }
