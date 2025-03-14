@@ -32,19 +32,19 @@ const double eps = 1e-8;
 
 struct SplayTree {
     int key;
-    ll s;
+    int size;
     SplayTree *L = 0, *R = 0, *P = 0;
 
     SplayTree() {}
-    SplayTree(int _key) : key(_key), s(_key) {}
+    SplayTree(int _key) : key(_key), size(1) {}
 };
 
-ll get_s(SplayTree* v) {
-    return (v ? v->s : 0);
+ll get_size(SplayTree* v) {
+    return (v ? v->size : 0);
 }
 
-void recalc_s(SplayTree* v) {
-    v->s = get_s(v->L) + get_s(v->R) + v->key;
+void update(SplayTree* v) {
+    v->size = get_size(v->L) + get_size(v->R) + 1;
 }
 
 void set_parent(SplayTree* child, SplayTree* parent) {
@@ -88,8 +88,8 @@ void zig(SplayTree* v) {
 
         set_parent(B, p);
     }
-    recalc_s(p);
-    recalc_s(v);
+    update(p);
+    update(v);
 }
 
 void zig_zig(SplayTree* v) {
@@ -163,7 +163,7 @@ SplayTree* merge(SplayTree* L, SplayTree* R) {
     splay(L);
     L->R = R;
     R->P = L;
-    recalc_s(L);
+    update(L);
     return L;
 }
 
@@ -179,55 +179,68 @@ pair<SplayTree*, SplayTree*> split(SplayTree* v, int x) {
         SplayTree* L = v->L;
         set_parent(L, 0);
         v->L = 0;
-        recalc_s(v);
+        update(v);
         return {L, v};
     } else {
         SplayTree* R = v->R;
         set_parent(R, 0);
         v->R = 0;
-        recalc_s(v);
+        update(v);
         return {v, R};
     }
 }
 
 void insert(SplayTree*& v, int key) {
     find(v, key);
-    if (v && v->key == key) {
-        return;
-    }
     SplayTree* temp = new SplayTree(key);
     auto [L, R] = split(v, key);
     v = merge(L, merge(temp, R));
 }
 
-ll sum(SplayTree*& v, int l, int r) {
-    auto [M, R] = split(v, r + 1);
-    auto [L, T] = split(M, l);
-    ll ans = get_s(T);
-    v = merge(L, merge(T, R));
-    return ans;
+/*
+erase node with key = x, or do nothing, if where is no key = x
+*/
+void erase(SplayTree*& v, int x) {
+    v = find(v, x);
+    if (v && v->key == x) {
+        SplayTree* L = v->L;
+        SplayTree* R = v->R;
+        set_parent(L, 0);
+        set_parent(R, 0);
+        delete v;
+        v = merge(L, R);
+    }
+}
+
+int get_kth(SplayTree*& v, int k) {
+    while (true) {
+        if (k == get_size(v->R) + 1) {
+            splay(v);
+            return v->key;
+        }
+        if (get_size(v->R) >= k) {
+            v = v->R;
+        } else {
+            k -= get_size(v->R) + 1;
+            v = v->L;
+        }
+    }
 }
 
 void solve() {
     int n;
     cin >> n;
     SplayTree* root = 0;
-
-    ll prev = 0;
     for (int i = 0; i < n; i++) {
-        char type;
-        cin >> type;
-        if (type == '+') {
-            int x;
-            cin >> x;
-            x = (x + prev) % INF;
-            insert(root, x);
-            prev = 0;
+        string s;
+        int x;
+        cin >> s >> x;
+        if (s == "0") {
+            cout << get_kth(root, x) << '\n';
+        } else if (s == "-1") {
+            erase(root, x);
         } else {
-            int l, r;
-            cin >> l >> r;
-            prev = sum(root, l, r);
-            cout << prev << '\n';
+            insert(root, x);
         }
     }
 }
