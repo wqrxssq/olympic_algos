@@ -44,11 +44,12 @@ const int MOD = 1e9 + 7;
 struct SplayTree {
     int size;
     int L, R, P;
+    bool rev;
 
-    SplayTree() : size(1), L(-1), R(-1), P(-1) {}
+    SplayTree() : size(1), L(-1), R(-1), P(-1), rev(false) {}
 };
 
-const int MAXN = 100000 + 100;
+const int MAXN = 1e5 + 100;
 int n;
 SplayTree t[MAXN];
 
@@ -59,6 +60,17 @@ int get_size(int v) {
 void update(int v) {
     if(v == -1) return;
     t[v].size = get_size(t[v].L) + get_size(t[v].R) + 1;
+}
+
+void push(int v) {
+    if (t[v].rev) {
+        if (t[v].L != -1)
+            t[t[v].L].rev ^= 1;
+        if (t[v].R != -1)
+            t[t[v].R].rev ^= 1;
+        swap(t[v].R, t[v].L);
+        t[v].rev = 0;
+    }
 }
 
 bool is_root(int v) {
@@ -85,6 +97,8 @@ void update_parent(int child, int old_child) {
 void zig(int v) {
     int p = t[v].P;
     if(p == -1) return;
+    push(p);
+    push(v);
     if(t[p].L == v) {
         int B = t[v].R;
 
@@ -133,6 +147,7 @@ void splay(int v) {
                 zig_zag(v);
         }
     }
+    push(v);
 }
 
 int expose(int x) {
@@ -147,22 +162,26 @@ int expose(int x) {
     return c;
 }
 
-void link(int v, int u) {
+void reroot(int v) {
     expose(v);
-    expose(u);
-    t[u].P = v;
-    t[v].R = u;
+    t[v].rev ^= 1;
+}
+
+void link(int v, int u) {
+    reroot(v);
+    t[v].P = u;
+}
+
+void cut_parent(int v) {
+    expose(v);
+    set_parent(t[v].L,  -1);
+	t[v].L = -1;
+    update(v);
 }
 
 void cut(int v, int u) {
-    expose(v);
-    if (t[u].P == v) {
-        expose(u);
-        t[u].P = -1;
-    } else {
-        expose(u);
-        t[v].P = -1;
-    }
+    reroot(v);
+    cut_parent(u);
 }
 
 bool path(int v, int u) {
@@ -183,9 +202,7 @@ int lca(int v, int u) {
 
 int depth(int v) {
     expose(v);
-    if (t[v].L == -1)
-        return 0;
-    return t[t[v].L].size;
+    return get_size(t[v].L);
 }
 
 int distance(int v, int u) {
