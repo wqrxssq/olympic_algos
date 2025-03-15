@@ -45,168 +45,217 @@ const int MOD = 1e9 + 7;
 #define fast_input ios_base::sync_with_stdio(0)
 #define setpr cout << setprecision(6) << fixed
 
-class LinkCutTree {
-   private:
-    struct Vertex {
-        int left, right, parent;
-        bool revert;
-        int size;
+// ok
+struct SplayTree {
+    int size;
+    int L, R, P;
+    bool rev;
 
-        Vertex()
-            : left(-1),
-              right(-1),
-              parent(-1),
-              revert(),
-              size(1) {}
-    };
-
-    vector<Vertex> t;
-
-    bool isRoot(int x) const {
-        int p = t[x].parent;
-        return p == -1 || (t[p].left != x && t[p].right != x);
-    }
-
-    void push(int x) {
-        if (t[x].revert) {
-            if (t[x].left != -1) t[t[x].left].revert = !t[t[x].left].revert;
-            if (t[x].right != -1) t[t[x].right].revert = !t[t[x].right].revert;
-            swap(t[x].left, t[x].right);
-            t[x].revert = false;
-        }
-    }
-
-    void keep(int x) {
-        t[x].size = 1;
-        if (t[x].left != -1) {
-            t[x].size += t[t[x].left].size;
-        }
-        if (t[x].right != -1) {
-            t[x].size += t[t[x].right].size;
-        }
-    }
-
-    void rotate(int x) {
-        int p = t[x].parent;
-        int g = t[p].parent;
-        push(p), push(x);
-        if (g != -1) {
-            if (t[g].left == p)
-                t[g].left = x;
-            else if (t[g].right == p)
-                t[g].right = x;
-        }
-        t[x].parent = g;
-        if (t[p].left == x) {
-            t[p].left = t[x].right;
-            if (t[p].left != -1) t[t[p].left].parent = p;
-            t[x].right = p;
-        } else {
-            t[p].right = t[x].left;
-            if (t[p].right != -1) t[t[p].right].parent = p;
-            t[x].left = p;
-        }
-        t[p].parent = x;
-        keep(p), keep(x);
-    }
-
-    void splay(int x) {
-        while (!isRoot(x)) {
-            int p = t[x].parent;
-            if (!isRoot(p)) {
-                int g = t[p].parent;
-                bool zigzig = (x == t[p].left) == (p == t[g].left);
-                rotate(zigzig ? p : x);
-            }
-            rotate(x);
-        }
-        push(x);
-    }
-
-    int expose(int x) {
-        int c = -1;
-        for (int y = x; y != -1; y = t[y].parent) {
-            splay(y);
-            t[y].right = c;
-            keep(y);
-            c = y;
-        }
-        splay(x);
-        return c;
-    }
-
-   public:
-    LinkCutTree(int n) : t(n) {}
-
-    void evert(int x) {
-        expose(x);
-        t[x].revert = !t[x].revert;
-    }
-
-    bool path(int x, int y) {
-        if (x == y) return true;
-        expose(y), expose(x);
-        return t[y].parent != -1;
-    }
-
-    void link(int x, int y) {
-        if (path(x, y)) return;
-        evert(x);
-        t[x].parent = y;
-    }
-
-    void cut(int x) {
-        expose(x);
-        if (t[x].left == -1) return;
-        t[t[x].left].parent = -1;
-        t[x].left = -1;
-    }
-
-    void cut_edge(int v, int u) {
-        evert(v);
-        cut(u);
-    }
-
-    int lca(int x, int y) {
-        if (!path(x, y)) return -1;
-        expose(x);
-        return expose(y);
-    }
-
-    int depth(int x) {
-        expose(x);
-        if (t[x].left == -1) return 0;
-        return t[t[x].left].size;
-    }
-
-    int distance(int x, int y) {
-        int l = lca(x, y);
-        if (l == -1) return -1;
-        return depth(y) + depth(x) - depth(l) * 2;
-    }
+    SplayTree() : size(1), L(-1), R(-1), P(-1), rev(false) {}
 };
 
+// ok
+const int MAXN = 1e5 + 100;
+int n;
+SplayTree t[MAXN];
+
+// ok
+int get_size(int v) {
+    return (v == -1 ? 0 : t[v].size);
+}
+
+// ok
+void update(int v) {
+    if(v == -1) return;
+    t[v].size = get_size(t[v].L) + get_size(t[v].R) + 1;
+}
+
+// ok
+void push(int v) {
+    if (t[v].rev) {
+        if (t[v].L != -1)
+            t[t[v].L].rev ^= 1;
+        if (t[v].R != -1)
+            t[t[v].R].rev ^= 1;
+        swap(t[v].R, t[v].L);
+        t[v].rev = 0;
+    }
+}
+
+// ok
+bool is_root(int v) {
+    int p = t[v].P;
+    return p == -1 || (t[p].L != v && t[p].R != v);
+}
+
+// ok
+void set_parent(int child, int parent) {
+    if(child != -1) {
+        t[child].P = parent;
+    }
+}
+
+// ok
+void update_parent(int child, int old_child) {
+    int parent = t[old_child].P;
+    if(parent != -1) {
+        if(t[parent].L == old_child)
+            t[parent].L = child;
+        else if (t[parent].R == old_child)
+            t[parent].R = child;
+    }
+}
+
+// ok
+void zig(int v) {
+    int p = t[v].P;
+    if(p == -1) return;
+    push(p);
+    push(v);
+    if(t[p].L == v) {
+        int B = t[v].R;
+
+        t[v].P = t[p].P;
+        update_parent(v, p);
+        t[v].R = p;
+
+        t[p].P = v;
+        t[p].L = B;
+        set_parent(B, p);
+    } else {
+        int B = t[v].L;
+
+        t[v].P = t[p].P;
+        update_parent(v, p);
+        t[v].L = p;
+
+        t[p].P = v;
+        t[p].R = B;
+        set_parent(B, p);
+    }
+    update(p);
+    update(v);
+}
+
+// ok
+void zig_zig(int v) {
+    zig(t[v].P);
+    zig(v);
+}
+
+// ok
+void zig_zag(int v) {
+    zig(v);
+    zig(v);
+}
+
+// ok
+void splay(int v) {
+    while(!is_root(v)) {
+        int p = t[v].P;
+        if(is_root(p))
+            zig(v);
+        else {
+            int g = t[p].P;
+            if((t[g].L == p && t[p].L == v) || (t[g].R == p && t[p].R == v))
+                zig_zig(v);
+            else
+                zig_zag(v);
+        }
+    }
+    push(v);
+}
+
+// ok
+int expose(int x) {
+    int c = -1;
+	for (int y = x; y != -1; y = t[y].P) {
+		splay(y);
+		t[y].R = c;
+		update(y);
+		c = y;
+	}
+	splay(x);
+    return c;
+}
+
+// ok
+void reroot(int v) {
+    expose(v);
+    t[v].rev ^= 1;
+}
+
+// ok
+void link(int v, int u) {
+    reroot(v);
+    t[v].P = u;
+}
+
+// ok
+void cut_parent(int v) {
+    expose(v);
+    set_parent(t[v].L,  -1);
+	t[v].L = -1;
+    // update(v);
+}
+
+// ok
+void cut(int v, int u) {
+    reroot(v);
+    cut_parent(u);
+}
+
+// ok
+bool path(int v, int u) {
+    if (v == u)
+        return true;
+    expose(u);
+    expose(v);
+    return t[u].P != -1;
+}
+
+// ok
+int lca(int v, int u) {
+    if (!path(v, u)) {
+        return -1;
+    }
+    expose(v);
+    return expose(u);
+}
+
+// ok
+int depth(int v) {
+    expose(v);
+    return get_size(t[v].L);
+}
+
+// ok
+int distance(int v, int u) {
+    int x = lca(v, u);
+    if (x == -1)
+        return -1;
+    return depth(u) + depth(v) - depth(x) * 2;
+}
+
 void solve() {
-    int n, m;
+    int m;
     cin >> n >> m;
-    LinkCutTree q(n);
     for (int i = 0; i < m; i++) {
         string type;
         int v, u;
         cin >> type >> v >> u;
-        v--;
-        u--;
+        v--; u--;
         if (type == "get") {
-            cout << q.distance(v, u) << '\n';
+            cout << distance(v, u) << '\n';
         } else if (type == "link") {
-            q.link(v, u);
+            link(v, u);
         } else {
-            q.cut_edge(v, u);
+            cut(v, u);
         }
     }
 }
 
-int main() {
+int main(){
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
     solve();

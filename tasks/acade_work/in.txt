@@ -55,7 +55,7 @@ struct SplayTree {
 };
 
 // ok
-const int MAXN = 1e5 + 100;
+const int MAXN = 6;
 int n;
 SplayTree t[MAXN];
 
