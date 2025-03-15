@@ -1,57 +1,75 @@
 #include <iostream>
 #include <algorithm>
 #include <vector>
-#include <utility>
+#include <math.h>
+#include <set>
+#include <unordered_set>
+#include <map>
+#include <unordered_map>
+#include <deque>
+#include <queue>
+#include <string>
+#include <stack>
+#include <cassert>
+#include <iomanip>
+#include <random>
+#include <chrono>
+#include <cstring>
 using namespace std;
 
+using ll = long long;
+using ull = unsigned long long;
+using vi = vector <int>;
+using vvi = vector <vi>;
+using vll = vector <ll>;
+using pii = pair <int, int>;
+using vpii = vector <pii>;
+
+const double eps = 0.0001;
 const int INF = 1e9;
-const int MAXN = 100000;
+const ll INFLL = 1e18;
+const int MOD = 1e9 + 7;
+
+#define all(_x) _x.begin(), _x.end()
+#define rall(_x) _x.rbegin(), _x.rend()
+#define pb push_back
+#define ff first
+#define ss second
+#define sz(_x) (int)_x.size()
+#define display(_x) for (auto el : _x) cout << el << ' '; cout << '\n'
+#define cin_arr(_x) for (auto &el : _x) cin >> el;
+#define fast_input ios_base::sync_with_stdio(0)
+#define setpr cout << setprecision(6) << fixed
 
 struct SplayTree {
     int size;
-    int val, min_el;
-    bool is_rev;
     int L, R, P;
-    
-    SplayTree() {}
-    SplayTree(int _val) : size(1), val(_val), min_el(_val), is_rev(false), L(-1), R(-1), P(-1) {}
+
+    SplayTree() : size(1), L(-1), R(-1), P(-1) {}
 };
 
+const int MAXN = 100000 + 100;
+int n;
 SplayTree t[MAXN];
-int nodes_count = 0;
-
-int new_node(int val) {
-    t[nodes_count] = SplayTree(val);
-    return nodes_count++;
-}
 
 int get_size(int v) {
     return (v == -1 ? 0 : t[v].size);
 }
 
-int get_min_val(int v) {
-    return (v == -1 ? INF : t[v].min_el);
-}
-
 void update(int v) {
     if(v == -1) return;
     t[v].size = get_size(t[v].L) + get_size(t[v].R) + 1;
-    t[v].min_el = min({ get_min_val(t[v].L), get_min_val(t[v].R), t[v].val });
 }
 
-void push(int v) {
-    if(v == -1) return;
-    if (t[v].is_rev) {
-        if (t[v].L != -1) t[t[v].L].is_rev ^= 1;
-        if (t[v].R != -1) t[t[v].R].is_rev ^= 1;
-        swap(t[v].L, t[v].R);
-        t[v].is_rev = false;
-    }
+bool is_root(int v) {
+    int p = t[v].P;
+    return p == -1 || (t[p].L != v && t[p].R != v);
 }
 
 void set_parent(int child, int parent) {
-    if(child != -1)
+    if(child != -1) {
         t[child].P = parent;
+    }
 }
 
 void update_parent(int child, int old_child) {
@@ -69,17 +87,21 @@ void zig(int v) {
     if(p == -1) return;
     if(t[p].L == v) {
         int B = t[v].R;
+
         t[v].P = t[p].P;
         update_parent(v, p);
         t[v].R = p;
+
         t[p].P = v;
         t[p].L = B;
         set_parent(B, p);
     } else {
         int B = t[v].L;
+
         t[v].P = t[p].P;
         update_parent(v, p);
         t[v].L = p;
+
         t[p].P = v;
         t[p].R = B;
         set_parent(B, p);
@@ -99,9 +121,9 @@ void zig_zag(int v) {
 }
 
 void splay(int v) {
-    while(t[v].P != -1) {
+    while(!is_root(v)) {
         int p = t[v].P;
-        if(t[p].P == -1)
+        if(is_root(p))
             zig(v);
         else {
             int g = t[p].P;
@@ -113,95 +135,87 @@ void splay(int v) {
     }
 }
 
-int get_kth(int v, int k) {
-    push(v);
-    int left_size = get_size(t[v].L);
-    if(left_size + 1 == k) {
-        if(t[v].L != -1) push(t[v].L);
-        splay(v);
-        return v;
-    } else if(k <= left_size)
-        return get_kth(t[v].L, k);
-    else
-        return get_kth(t[v].R, k - left_size - 1);
+int expose(int x) {
+    int c = -1;
+	for (int y = x; y != -1; y = t[y].P) {
+		splay(y);
+		t[y].R = c;
+		update(y);
+		c = y;
+	}
+	splay(x);
+    return c;
 }
 
-int merge(int L, int R) {
-    if(L == -1) return R;
-    if(R == -1) return L;
-    push(L);
-    while(t[L].R != -1) {
-        push(L);
-        L = t[L].R;
-        push(L);
+void link(int v, int u) {
+    expose(v);
+    expose(u);
+    t[u].P = v;
+    t[v].R = u;
+}
+
+void cut(int v, int u) {
+    expose(v);
+    if (t[u].P == v) {
+        expose(u);
+        t[u].P = -1;
+    } else {
+        expose(u);
+        t[v].P = -1;
     }
-    splay(L);
-    t[L].R = R;
-    t[R].P = L;
-    update(L);
-    return L;
 }
 
-pair<int, int> split(int v, int x) {
-    if(v == -1) return {-1, -1};
-    if(x <= 0) return {-1, v};
-    if(x >= get_size(v)) return {v, -1};
-    v = get_kth(v, x);
-    int R = t[v].R;
-    set_parent(R, -1);
-    t[v].R = -1;
-    update(v);
-    return {v, R};
+bool path(int v, int u) {
+    if (v == u)
+        return true;
+    expose(u);
+    expose(v);
+    return t[u].P != -1;
 }
 
-void push_back(int &v, int val) {
-    int temp = new_node(val);
-    v = merge(v, temp);
+int lca(int v, int u) {
+    if (!path(v, u)) {
+        return -1;
+    }
+    expose(v);
+    return expose(u);
 }
 
-void reverse_interval(int &v, int l, int r) {
-    auto AB = split(v, l);
-    int A = AB.first, B = AB.second;
-    auto CD = split(B, r - l + 1);
-    int C = CD.first, D = CD.second;
-    if(C != -1) t[C].is_rev ^= 1;
-    v = merge(merge(A, C), D);
+int depth(int v) {
+    expose(v);
+    if (t[v].L == -1)
+        return 0;
+    return t[t[v].L].size;
 }
 
-int query_min(int &v, int l, int r) {
-    auto AB = split(v, l);
-    int A = AB.first, B = AB.second;
-    auto CD = split(B, r - l + 1);
-    int C = CD.first, D = CD.second;
-    int res = get_min_val(C);
-    v = merge(merge(A, C), D);
-    return res;
+int distance(int v, int u) {
+    int x = lca(v, u);
+    if (x == -1)
+        return -1;
+    return depth(u) + depth(v) - depth(x) * 2;
 }
 
 void solve() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
-    
-    int n, m;
+    int m;
     cin >> n >> m;
-    int root = -1;
-    for (int i = 0; i < n; i++) {
-        int x;
-        cin >> x;
-        push_back(root, x);
-    }
-    while(m--) {
-        int type, l, r;
-        cin >> type >> l >> r;
-        l--; r--;
-        if(type == 1)
-            reverse_interval(root, l, r);
-        else
-            cout << query_min(root, l, r) << "\n";
+    for (int i = 0; i < m; i++) {
+        string type;
+        int v, u;
+        cin >> type >> v >> u;
+        v--; u--;
+        if (type == "get") {
+            cout << distance(v, u) << '\n';
+        } else if (type == "link") {
+            link(v, u);
+        } else {
+            cut(v, u);
+        }
     }
 }
 
 int main(){
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
     solve();
     return 0;
 }
