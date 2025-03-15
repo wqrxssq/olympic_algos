@@ -1,3 +1,4 @@
+#pragma GCC optimize("O3,unroll-loops")
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -17,7 +18,7 @@
 #include <chrono>
 #include <cstring>
 using namespace std;
-
+ 
 using ll = long long;
 using ull = unsigned long long;
 using vi = vector <int>;
@@ -26,13 +27,13 @@ using vll = vector <ll>;
 using pii = pair <int, int>;
 using vpii = vector <pii>;
 using cd = complex<double>;
-
+ 
 const double eps = 0.0001;
 const int INF = 1e9;
 const ll INFLL = 1e18;
 const int MOD = 1e9 + 7;
 const double PI = acos(-1);
-
+ 
 #define all(_x) _x.begin(), _x.end()
 #define rall(_x) _x.rbegin(), _x.rend()
 #define pb push_back
@@ -43,115 +44,121 @@ const double PI = acos(-1);
 #define cin_arr(_x) for (auto &el : _x) cin >> el;
 #define fast_input ios_base::sync_with_stdio(0)
 #define setpr cout << setprecision(6) << fixed
-
-void fft(vector<cd> & a, bool invert) {
-    int n = sz(a);
-    for (int i = 1, j = 0; i < n; i++) {
-        int bit = n >> 1;
-        for (; j & bit; bit >>= 1)
-            j ^= bit;
-        j ^= bit;
-        if (i < j)
-            swap(a[i], a[j]);
-    }
-    for (int len = 2; len <= n; len <<= 1) {
-        double ang = 2 * PI / len * (invert ? -1 : 1);
-        cd wlen(cos(ang), sin(ang));
-        for (int i = 0; i < n; i += len) {
-            cd w(1);
-            for (int j = 0; j < len/2; j++) {
-                cd u = a[i + j];
-                cd v = a[i + j + len / 2] * w;
-                a[i + j] = u + v;
-                a[i + j + len / 2] = u - v;
-                w *= wlen;
-            }
-        }
-    }
-    if (invert) {
-        for (cd & x : a)
-            x /= n;
-    }
+ 
+const int KARATSUBA_STOP = 256;
+ 
+vi multiply_naive(vi &a, vi &b) {
+    int n = sz(a), m = sz(b);
+    vi res(n + m - 1, 0);
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < m; j++)
+            res[i + j] += a[i] * b[j];
+    return res;
 }
  
-vi poly_multiply(vi& a, vi& b) {
-    int n = 1;
-    while (n < sz(a) + sz(b) - 1)
-        n <<= 1;
-    vector<cd> fa(all(a)), fb(all(b));
-    fa.resize(n); fb.resize(n);
+vi poly_add(vi &a, vi &b) {
+    int n = max(sz(a), sz(b));
+    vi res(n, 0);
+    for (int i = 0; i < n; i++) {
+        res[i] += (i < sz(a) ? a[i] : 0);
+        res[i] += (i < sz(b) ? b[i] : 0);
+    }
+    return res;
+}
  
-    fft(fa, 0);
-    fft(fb, 0);
-    for (int i = 0; i < n; i++)
-        fa[i] *= fb[i];
-    fft(fa, 1);
+vi poly_sub(vi &a, vi &b) {
+    int n = max(sz(a), sz(b));
+    vi res(n, 0);
+    for (int i = 0; i < n; i++) {
+        res[i] += (i < sz(a) ? a[i] : 0);
+        res[i] -= (i < sz(b) ? b[i] : 0);
+    }
+    return res;
+}
  
-    vi res(n);
-    for (int i = 0; i < n; i++)
-        res[i] = int(round(fa[i].real()));
+vi karatsuba(vi &a, vi &b) {
+    if (a.empty() || b.empty()) 
+        return {0};
+    if (sz(a) < KARATSUBA_STOP || b.size() < KARATSUBA_STOP)
+        return multiply_naive(a, b);
+    int n = max(sz(a), sz(b));
+    int m = n / 2;
+    vi a_low(a.begin(), a.begin() + min((int)a.size(), m));
+    vi a_high(a.begin() + min((int)a.size(), m), a.end());
+    vi b_low(b.begin(), b.begin() + min((int)b.size(), m));
+    vi b_high(b.begin() + min((int)b.size(), m), b.end());
+    vi z0 = karatsuba(a_low, b_low);
+    vi z2 = karatsuba(a_high, b_high);
+    vi a_sum = poly_add(a_low, a_high);
+    vi b_sum = poly_add(b_low, b_high);
+    vi z1 = karatsuba(a_sum, b_sum);
+    z1 = poly_sub(z1, z0);
+    z1 = poly_sub(z1, z2);
+    int size = max({ sz(z0), sz(z1) + m, sz(z2) + 2 * m });
+    vi res(size);
+    for (int i = 0; i < sz(z0); i++) res[i] += z0[i];
+    for (int i = 0; i < sz(z1); i++) res[i + m] += z1[i];
+    for (int i = 0; i < sz(z2); i++) res[i + 2 * m] += z2[i];
+    return res;
+}
+ 
+vi poly_multiply(vi &a, vi &b) {
+    vi res = karatsuba(a, b);
     return res;
 }
  
 vi build(string &S, char ch, int k) {
     int n = sz(S);
-    vi diff(n+1, 0);
+    vi diff(n + 1, 0);
     for (int i = 0; i < n; i++) {
-        if(S[i] == ch) {
+        if (S[i] == ch) {
             int L = max(0, i - k);
             int R = min(n - 1, i + k);
-            diff[L] += 1;
-            diff[R+1] -= 1;
+            diff[L]++;
+            diff[R + 1]--;
         }
     }
     vi U(n, 0);
     int cur = 0;
-    for (int i = 0; i < n; i++){
+    for (int i = 0; i < n; i++) {
         cur += diff[i];
         U[i] = (cur > 0) ? 1 : 0;
     }
     return U;
 }
-
+ 
 void solve() {
     int n, m, k;
     cin >> n >> m >> k;
     string S, T;
     cin >> S >> T;
- 
-    vector<char> letters = {'A', 'C', 'G', 'T'};
+    vector<char> letters = { 'A', 'C', 'G', 'T' };
     vvi conv(4);
-    vi cnt(4);
- 
-    for (int idx = 0; idx < 4; idx++){
+    vi cnt(4, 0);
+    for (int idx = 0; idx < 4; idx++) {
         char ch = letters[idx];
         vi U = build(S, ch, k);
- 
         vi P(m, 0);
-        for (int j = 0; j < m; j++){
-            if(T[j] == ch){
+        for (int j = 0; j < m; j++) {
+            if (T[j] == ch) {
                 P[j] = 1;
                 cnt[idx]++;
             }
         }
- 
-        reverse(P.begin(), P.end());
- 
+        reverse(all(P));
         conv[idx] = poly_multiply(U, P);
     }
- 
     int ans = 0;
-    for (int i = 0; i <= n - m; i++){
+    for (int i = 0; i <= n - m; i++) {
         bool ok = true;
-        for (int idx = 0; idx < 4; idx++){
-            if (conv[idx][i + m - 1] != cnt[idx]){
+        for (int idx = 0; idx < 4; idx++) {
+            if (conv[idx][i + m - 1] != cnt[idx]) {
                 ok = false;
                 break;
             }
         }
         if (ok) ans++;
     }
- 
     cout << ans << "\n";
 }
 
