@@ -1,9 +1,50 @@
-link-cut tree - динамическая структура данных для леса(набора деревьев), которая умеет отвечать на все те же запросы, что и HLD + 2 новых запроса: link - соединить 2 дерева, cut - отрезать ребро. Все в онлайне и на все запросы отвечает аммортизиционно за O(log n).
-Основая идея - разбить деревья на непересекающиеся пути(то есть жирные пути и пунктирные), каждое из которых хранить в неявном дереве поиска, лучший выбор - Splay-Tree, с остальными будет O(log^2 n) на запрос. В корне каждого сплей-дерева будем хранить ссылку на следующий путь сверху.
-Главная операция в link-cut tree - expose(v) - сделать путь от вершины v до корня главным, поддерживая инвариант, что пути не пересекаются. Все остальные операции легко выражаются через expose.
+#include <math.h>
 
-Реализация:
-```cpp
+#include <algorithm>
+#include <cassert>
+#include <chrono>
+#include <cstring>
+#include <deque>
+#include <iomanip>
+#include <iostream>
+#include <map>
+#include <queue>
+#include <random>
+#include <set>
+#include <stack>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+using namespace std;
+
+using ll = long long;
+using ull = unsigned long long;
+using vi = vector<int>;
+using vvi = vector<vi>;
+using vll = vector<ll>;
+using pii = pair<int, int>;
+using vpii = vector<pii>;
+
+const double eps = 0.0001;
+const int INF = 1e9;
+const ll INFLL = 1e18;
+const int MOD = 1e9 + 7;
+
+#define all(_x) _x.begin(), _x.end()
+#define rall(_x) _x.rbegin(), _x.rend()
+#define pb push_back
+#define ff first
+#define ss second
+#define sz(_x) (int)_x.size()
+#define display(_x)                       \
+    for (auto el : _x) cout << el << ' '; \
+    cout << '\n'
+#define cin_arr(_x) \
+    for (auto &el : _x) cin >> el;
+#define fast_input ios_base::sync_with_stdio(0)
+#define setpr cout << setprecision(6) << fixed
+
 struct SplayTree {
     int size;
     int L, R, P;
@@ -139,7 +180,7 @@ void cut_parent(int v) {
     expose(v);
     set_parent(t[v].L,  -1);
 	t[v].L = -1;
-    update(v);
+    // update(v);
 }
 
 void cut(int v, int u) {
@@ -174,4 +215,28 @@ int distance(int v, int u) {
         return -1;
     return depth(u) + depth(v) - depth(x) * 2;
 }
-```
+
+void solve() {
+    int m;
+    cin >> n >> m;
+    for (int i = 0; i < m; i++) {
+        string type;
+        int v, u;
+        cin >> type >> v >> u;
+        v--; u--;
+        if (type == "get") {
+            cout << distance(v, u) << '\n';
+        } else if (type == "link") {
+            link(v, u);
+        } else {
+            cut(v, u);
+        }
+    }
+}
+
+int main(){
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    solve();
+    return 0;
+}
