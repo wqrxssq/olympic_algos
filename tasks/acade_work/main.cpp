@@ -45,41 +45,97 @@ const int MOD = 1e9 + 7;
 #define fast_input ios_base::sync_with_stdio(0)
 #define setpr cout << setprecision(6) << fixed
 
-const int MAXN = 20;
-int w[MAXN];
-int dp[1 << MAXN];
+bool is_operation(int c) {
+	return (c == '+' || c == '-');
+}
+int prior(int op) {
+    if (op < 0)
+        return 2;
+    return (op == '+' || op == '-' ? 1 : -1);
+}
+
+void do_operation(vll& st, int op) {
+	if (op < 0) { // unary
+		ll a = st.back();
+        st.pop_back();
+		switch (-op) {
+			case '+': st.push_back (a); break;
+			case '-': st.push_back (-a); break;
+		}
+	} else {
+		ll b = st.back(); st.pop_back();
+		ll a = st.back(); st.pop_back();
+		switch (op) {
+			case '+':  st.push_back (a + b); break;
+			case '-':  st.push_back (a - b); break;
+		}
+	}
+}
+
+
 
 void solve() {
-    memset(dp, -1, sizeof(dp));
-
-    int S = 0;
-    int n;
-    cin >> n;
-    for (int i = 0; i < n; i++) {
-        cin >> w[i];
-        S += w[i];
+    string s;
+    char trash;
+    while (cin >> trash) {
+        s.pb(trash);
     }
 
-    if (S % 3 != 0) {
-        cout << "No solution\n";
-        return;
-    }
-    S /= 3;
+    vll st;
+    vi op;
+    bool unary = 1;
 
-    dp[0] = 0;
-    for (int mask = 0; mask < (1 << n); mask++) {
-        for (int i = 0; i < n; i++) {
-            if ((mask & (1 << i)) == 0 && dp[mask ^ (1 << i)] == -1 && dp[mask] != -1 && dp[mask] + w[i] <= S) {
-                dp[mask ^ (1 << i)] = (dp[mask] + w[i]) % S;
+    for (int i = 0; i < sz(s); i++) {
+        int c = s[i];
+        if (c == ' ') {
+            continue;
+        }
+        if (c == '(') {
+            op.push_back(c);
+            unary = 1;
+        } else if (c == ')') {
+            while (op.back() != '(') {
+                do_operation(st, op.back());
+                op.pop_back();
             }
+            op.pop_back();
+            unary = 0;
+        } else if (is_operation(c)) {
+			if (unary) {
+                c *= -1;
+            }
+			while (!op.empty() && ((c >= 0 && prior(op.back()) >= prior(c)) || (c < 0 && prior(op.back()) > prior(c)))) {
+				do_operation(st, op.back());
+                op.pop_back();
+            }
+			op.push_back(c);
+			unary = 1;
+        } else {
+            int num = 0;
+            while (i < sz(s) && isdigit(s[i])) {
+                num *= 10;
+                num += s[i] - '0';
+                i++;
+            }
+            st.pb(num);
+            i--;
+            unary = 0;
         }
     }
-    cout << dp[(1 << n) - 1] << '\n';
+
+    while (!op.empty()) {
+        do_operation(st, op.back());
+        op.pop_back();
+    }
+    cout << st.back() << '\n';
 }
 
 int main() {
-    ios::sync_with_stdio(false);
-    cin.tie(nullptr);
+    fast_input;
+#ifdef __APPLE__
+    freopen("in.txt", "r", stdin);
+    freopen("out.txt", "w", stdout);
+#endif
     solve();
     return 0;
 }
