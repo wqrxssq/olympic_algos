@@ -45,89 +45,74 @@ const int MOD = 1e9 + 7;
 #define fast_input ios_base::sync_with_stdio(0)
 #define setpr cout << setprecision(6) << fixed
 
-bool is_operation(int c) {
-	return (c == '+' || c == '-');
-}
-int prior(int op) {
-    if (op < 0)
-        return 2;
-    return (op == '+' || op == '-' ? 1 : -1);
-}
+const int MAXN = 305;
+int n, m;
+int can[MAXN][MAXN];
 
-void do_operation(vll& st, int op) {
-	if (op < 0) { // unary
-		ll a = st.back();
-        st.pop_back();
-		switch (-op) {
-			case '+': st.push_back (a); break;
-			case '-': st.push_back (-a); break;
-		}
-	} else {
-		ll b = st.back(); st.pop_back();
-		ll a = st.back(); st.pop_back();
-		switch (op) {
-			case '+':  st.push_back (a + b); break;
-			case '-':  st.push_back (a - b); break;
-		}
-	}
+void do_move() {
+    int old_can[MAXN][MAXN];
+    for (int i = 0; i <= n + 1; i++) {
+        for (int j = 0; j <= m + 1; j++) {
+            old_can[i][j] = can[i][j];
+        }
+    }
+
+    memset(can, 0, sizeof(can));
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            can[i][j] = (old_can[i - 1][j] | old_can[i + 1][j] | old_can[i][j - 1] | old_can[i][j + 1]);
+        }
+    }
 }
 
-
+void print() {
+    for (int i = 0; i <= n + 1; i++) {
+        for (int j = 0; j <= m + 1; j++) {
+            cout << can[i][j] << ' ';
+        }
+        cout << '\n';
+    }
+    cout << '\n';
+}
 
 void solve() {
-    string s;
-    char trash;
-    while (cin >> trash) {
-        s.pb(trash);
-    }
+    int q;
+    cin >> n >> m >> q;
 
-    vll st;
-    vi op;
-    bool unary = 1;
-
-    for (int i = 0; i < sz(s); i++) {
-        int c = s[i];
-        if (c == ' ') {
-            continue;
-        }
-        if (c == '(') {
-            op.push_back(c);
-            unary = 1;
-        } else if (c == ')') {
-            while (op.back() != '(') {
-                do_operation(st, op.back());
-                op.pop_back();
-            }
-            op.pop_back();
-            unary = 0;
-        } else if (is_operation(c)) {
-			if (unary) {
-                c *= -1;
-            }
-			while (!op.empty() && ((c >= 0 && prior(op.back()) >= prior(c)) || (c < 0 && prior(op.back()) > prior(c)))) {
-				do_operation(st, op.back());
-                op.pop_back();
-            }
-			op.push_back(c);
-			unary = 1;
-        } else {
-            int num = 0;
-            while (i < sz(s) && isdigit(s[i])) {
-                num *= 10;
-                num += s[i] - '0';
-                i++;
-            }
-            st.pb(num);
-            i--;
-            unary = 0;
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            can[i][j] = 1;
         }
     }
 
-    while (!op.empty()) {
-        do_operation(st, op.back());
-        op.pop_back();
+    for (int i = 0; i < q; i++) {
+        int l1, l2, r1, r2;
+        cin >> l1 >> l2 >> r1 >> r2;
+
+        // cout << "Before move: " << '\n';
+        // print();
+
+        do_move();
+
+        // cout << "After move: " << '\n';
+        // print();
+
+        for (int k = 0; k <= n + 1; k++) {
+            for (int w = 0; w <= m + 1; w++) {
+                can[k][w] &= (l1 <= k && k <= r1) && (l2 <= w && w <= r2);
+            }
+        }
+
+        // cout << "After correlation: " << '\n';
+        // print();
     }
-    cout << st.back() << '\n';
+
+    if (*max_element(*can, *can + (MAXN * MAXN)) == 1) {
+        cout << "Yes\n";
+    } else {
+        cout << "No\n";
+    }
 }
 
 int main() {
