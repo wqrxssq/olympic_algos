@@ -66,16 +66,6 @@ void do_move() {
     }
 }
 
-void print() {
-    for (int i = 0; i <= n + 1; i++) {
-        for (int j = 0; j <= m + 1; j++) {
-            cout << can[i][j] << ' ';
-        }
-        cout << '\n';
-    }
-    cout << '\n';
-}
-
 void solve() {
     int q;
     cin >> n >> m >> q;
@@ -90,22 +80,13 @@ void solve() {
         int l1, l2, r1, r2;
         cin >> l1 >> l2 >> r1 >> r2;
 
-        // cout << "Before move: " << '\n';
-        // print();
-
         do_move();
-
-        // cout << "After move: " << '\n';
-        // print();
 
         for (int k = 0; k <= n + 1; k++) {
             for (int w = 0; w <= m + 1; w++) {
                 can[k][w] &= (l1 <= k && k <= r1) && (l2 <= w && w <= r2);
             }
         }
-
-        // cout << "After correlation: " << '\n';
-        // print();
     }
 
     if (*max_element(*can, *can + (MAXN * MAXN)) == 1) {
