@@ -29,9 +29,9 @@ int main(int argc, char ** argv) {
 
     // compile
     execute("clang++ -std=c++2a " + correct_sol_name + " -o build/stupid");
-    cerr << "Compilation of smart solution completed!\n";
-    execute("clang++ -std=c++2a " + incorrect_sol_name + " -o build/smart");
     cerr << "Compilation of correct solution completed!\n";
+    execute("clang++ -std=c++2a " + incorrect_sol_name + " -o build/smart");
+    cerr << "Compilation of smart solution completed!\n";
     execute("clang++ -std=c++2a " + generator_name + " -o build/generator");
     cerr << "Compilation of generator completed!\n";
 
