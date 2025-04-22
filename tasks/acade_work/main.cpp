@@ -26,7 +26,9 @@ using vll = vector<ll>;
 using pii = pair<int, int>;
 using vpii = vector<pii>;
 
-const double EPS = 1e-9;
+#define double long double
+
+const double EPS = 1e-6;
 const double PI = acos(-1);
 const int INF = 1e9;
 const ll INFLL = 1e18;
@@ -97,7 +99,7 @@ bool is_h_on_segment(r a, r b, r c) {
 double get_h(r a, r b, r c) {
     if (a == b)
         return len(c - a);
-    return fabs(double((b - a) % (c - a)) / len(b - a));
+    return fabs((double)((b - a) % (c - a)) / len(b - a));
 }
 bool is_in_angle(r a, r b, r o, r p) {
     return (a - o) % (p - o) >= 0 && (b - o) % (p - o) <= 0;
@@ -140,8 +142,8 @@ double len(r_double a) {
 }
 bool is_on_segment(r_double a, r_double b, r_double c) {
     if (fabs((b - a) % (c - a)) < EPS &&
-        c.x >= min(a.x, b.x) && c.x <= max(b.x, a.x) &&
-        c.y >= min(a.y, b.y) && c.y <= max(a.y, b.y))
+        c.x - min(a.x, b.x) >= -EPS && c.x <= max(b.x, a.x) + EPS &&
+        c.y >= min(a.y, b.y) - EPS && c.y <= max(a.y, b.y) + EPS)
         return true;
     return false;
 }
@@ -228,6 +230,9 @@ inline bool intersect_box_segments(ll a, ll b, ll c, ll d) {
 }
 
 bool is_segments_intersect(r a, r b, r c, r d) {
+    // return ((b - a) % (c - a)) * ((b - a) % (d - a)) <= 0 &&
+    //         ((d - c) % (a - c)) * ((d - c) % (b - c)) <= 0;
+
     line n = get_line_from_two_r(a, b);
     line m = get_line_from_two_r(c, d);
     if (is_equal(n, m)) {
@@ -272,7 +277,8 @@ bool is_rays_intersect(r a, r b, r c, r d) {
     line n = get_line_from_two_r(a, b);
     line m = get_line_from_two_r(c, d);
     if (is_equal(n, m)) {
-        return (b - a) * (d - c) >= 0 || is_segments_intersect(a, b, c, d);
+        return is_on_ray(a, ray{c, d})
+            || is_on_ray(c, ray{a, b});
     } else if (is_parallel(n, m)) {
         return false;
     } else {
@@ -336,7 +342,7 @@ double dist_segment_ray(r a, r b, r c, r d) {
     if (is_segment_ray_intersect(a, b, c, d)) {
         return 0;
     } else {
-        return min(dist_dot_ray(c, d, a), dist_dot_ray(c, d, b));
+        return min({dist_dot_ray(c, d, a), dist_dot_ray(c, d, b), dist_dot_segment(a, b, c)});
     }
 }
 
