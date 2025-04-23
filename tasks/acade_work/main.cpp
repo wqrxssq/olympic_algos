@@ -24,9 +24,8 @@ using vi = vector<int>;
 using vvi = vector<vi>;
 using vll = vector<ll>;
 using pii = pair<int, int>;
+using pll = pair<ll, ll>;
 using vpii = vector<pii>;
-
-#define double long double
 
 const double EPS = 1e-6;
 const double PI = acos(-1);
@@ -46,372 +45,119 @@ const int MOD = 1e9 + 7;
     for (auto &el : _x) cin >> el;
 #define fast_input ios_base::sync_with_stdio(0)
 #define setpr cout << setprecision(9) << fixed
+
+mt19937 rnd(0);
 struct r {
     ll x, y;
-    r(ll _x, ll _y) : x(_x), y(_y) {;}
-    r() {;}
-    bool operator == (r a) {
-        return x == a.x && y == a.y;
-    }
 };
-istream& operator >>(istream& in, r& a) {
-    in >> a.x >> a.y;
+
+istream& operator >>(istream& in, r& p) {
+    in >> p.x >> p.y;
     return in;
 }
-ostream& operator <<(ostream& out, r a) {
-    out << a.x << ' ' << a.y;
+ostream& operator <<(ostream& out, r p) {
+    out << p.x << ' ' << p.y;
     return out;
 }
+
 r operator +(r a, r b) {
     return {a.x + b.x, a.y + b.y};
 }
 r operator -(r a, r b) {
     return {a.x - b.x, a.y - b.y};
 }
-r operator *(r a, int k) {
-    return {a.x * k, a.y * k};
-}
-ll operator *(r a, r b) {
-    return a.x * b.x + a.y * b.y;
-}
-ll operator %(r a, r b) {
-    return a.x * b.y - a.y * b.x;
-}
-ll sqr_len(r a) {
+ll dist2(r a) {
     return a.x * a.x + a.y * a.y;
 }
-double len(r a) {
-    return hypot(a.x, a.y);
-}
-bool is_on_segment(r a, r b, r c) {
-    if ((b - a) % (c - a) == 0 &&
-        c.x >= min(a.x, b.x) && c.x <= max(b.x, a.x) &&
-        c.y >= min(a.y, b.y) && c.y <= max(a.y, b.y))
-        return true;
-    return false;
-}
-bool is_on_line(r a, r b, r c) {
-    return (b - a) % (c - a) == 0;
-}
-bool is_h_on_segment(r a, r b, r c) {
-    return (b - a) * (c - a) >= 0 && (a - b) * (c - b) >= 0;
-}
-double get_h(r a, r b, r c) {
-    if (a == b)
-        return len(c - a);
-    return fabs((double)((b - a) % (c - a)) / len(b - a));
-}
-bool is_in_angle(r a, r b, r o, r p) {
-    return (a - o) % (p - o) >= 0 && (b - o) % (p - o) <= 0;
-}
 
-bool is_h_on_ray(r a, r b, r c) {
-    return (b - a) * (c - a) >= 0;
-}
-
-struct r_double {
-    double x, y;
-    r_double(double _x, double _y) : x(_x), y(_y) {;}
-    r_double() {;}
-};
-istream& operator >>(istream& in, r_double& a) {
-    in >> a.x >> a.y;
-    return in;
-}
-ostream& operator <<(ostream& out, r_double a) {
-    out << a.x << ' ' << a.y;
-    return out;
-}
-r_double operator +(r_double a, r_double b) {
-    return {a.x + b.x, a.y + b.y};
-}
-r_double operator -(r_double a, r_double b) {
-    return {a.x - b.x, a.y - b.y};
-}
-r_double operator *(r_double a, double k) {
-    return {a.x * k, a.y * k};
-}
-double operator *(r_double a, r_double b) {
-    return a.x * b.x + a.y * b.y;
-}
-double operator %(r_double a, r_double b) {
-    return a.x * b.y - a.y * b.x;
-}
-double len(r_double a) {
-    return hypot(a.x, a.y);
-}
-bool is_on_segment(r_double a, r_double b, r_double c) {
-    if (fabs((b - a) % (c - a)) < EPS &&
-        c.x - min(a.x, b.x) >= -EPS && c.x <= max(b.x, a.x) + EPS &&
-        c.y >= min(a.y, b.y) - EPS && c.y <= max(a.y, b.y) + EPS)
-        return true;
-    return false;
-}
-bool is_on_line(r_double a, r_double b, r_double c) {
-    return fabs((b - a) % (c - a)) < EPS;
-}
-r_double convert_to_r_double(r a) {
-    return {(double)a.x, (double)a.y};
-}
-r_double norm(r_double a) {
-    return {a.x / len(a), a.y / len(a)};
-}
-r_double norm(r a) {
-    return norm(convert_to_r_double(a));
-}
-r_double get_bic(r_double a, r_double b, r_double o) {
-    r_double oa = norm(a - o);
-    r_double ob = norm(b - o);
-    return o + oa + ob;
-}
-
-struct line {
-    ll a, b, c;
-    line(ll _a, ll _b, ll _c) : a(_a), b(_b), c(_c) {;}
-    line() {;}
-};
-istream& operator >>(istream& in, line &a) {
-    in >> a.a >> a.b >> a.c;
-    return in;
-}
-ostream& operator <<(ostream& out, line a) {
-    out << a.a << ' ' << a.b << ' ' << a.c;
-    return out;
-}
-line get_line_from_two_r(r a, r b) {
-    return {a.y - b.y, b.x - a.x, a % b};
-}
-bool is_parallel(line n, line m) {
-    return n.a * m.b - n.b * m.a == 0;
-}
-bool is_equal(line n, line m) {
-    return n.a * m.b - n.b * m.a == 0 && n.a * m.c - n.c * m.a == 0 && n.b * m.c - n.c * m.b == 0;
-}
-r_double intersect_lines(line n, line m) {
-    return {(double)(n.b * m.c - n.c * m.b) / (n.a * m.b - n.b * m.a),
-        (double)(n.a * m.c - n.c * m.a) / (n.b * m.a - n.a * m.b)};
-}
-double dist_line_to_r(line n, r p) {
-    return fabs((double)(p.x * n.a + p.y * n.b + n.c)) / len(r(n.a, n.b));
-}
-double dist_line_to_r(line n, r_double p) {
-    return fabs((p.x * n.a + p.y * n.b + n.c)) / len(r(n.a, n.b));
-}
-bool is_on_line(line n, r p) {
-    return n.a * p.x + n.b * p.y + n.c == 0;
-}
-bool is_on_line(line n, r_double p) {
-    return fabs(n.a * p.x + n.b * p.y + n.c) < EPS;
-}
-r_double reflect(r_double a, line n) {
-    line n_normal(n.b, -n.a, n.a * a.y - n.b * a.x);
-    r_double inter = intersect_lines(n, n_normal);
-    return a + ((inter - a) * 2);
-}
-
-struct ray {
-    r o, a;
-    ray(r _o, r _a) : o(_o), a(_a) {;}
-    ray() {;}
-};
-bool is_on_ray(r p, ray l) {
-    return (p - l.o) % (l.a - l.o) == 0 && (p - l.o) * (l.a - l.o) >= 0;
-}
-
-bool is_on_ray(r_double p, r o, r a) {
-    return fabs((p - convert_to_r_double(o)) % (convert_to_r_double(a) - convert_to_r_double(o))) <= EPS
-            && (p - convert_to_r_double(o)) * (convert_to_r_double(a) - convert_to_r_double(o)) >= -EPS;
-}
-
-inline bool intersect_box_segments(ll a, ll b, ll c, ll d) {
-	if (a > b) swap(a, b);
-	if (c > d) swap(c, d);
-	return max(a, c) <= min(b, d);
-}
-
-bool is_segments_intersect(r a, r b, r c, r d) {
-    // return ((b - a) % (c - a)) * ((b - a) % (d - a)) <= 0 &&
-    //         ((d - c) % (a - c)) * ((d - c) % (b - c)) <= 0;
-
-    line n = get_line_from_two_r(a, b);
-    line m = get_line_from_two_r(c, d);
-    if (is_equal(n, m)) {
-        return intersect_box_segments(a.x, b.x, c.x, d.x) && intersect_box_segments(a.y, b.y, c.y, d.y);
-    } else if (is_parallel(n, m)) {
-        return false;
-    } else {
-        r_double inter = intersect_lines(n, m);
-        return is_on_segment(convert_to_r_double(a), convert_to_r_double(b), inter) &&
-                is_on_segment(convert_to_r_double(c), convert_to_r_double(d), inter);
+ll brute(vector<r>& pts, pair<r,r> &best) {
+    ll d = LLONG_MAX;
+    for (int i = 0; i < pts.size(); i++) {
+        for (int j = i + 1; j < pts.size(); j++) {
+            ll d2 = dist2(pts[i] - pts[j]);
+            if (d2 < d) {
+                d = d2;
+                best = {pts[i], pts[j]};
+            }
+        }
     }
+    return d;
 }
 
-bool is_segment_ray_intersect(r a, r b, r c, r d) {
-    line n = get_line_from_two_r(a, b);
-    line m = get_line_from_two_r(c, d);
-    if (is_equal(n, m)) {
-        ray cd(c, d);
-        return is_on_ray(a, cd) || is_on_ray(b, cd);
-    } else if (is_parallel(n, m)) {
-        return false;
-    } else {
-        r_double inter = intersect_lines(n, m);
-        return is_on_ray(inter, c, d) && is_on_segment(convert_to_r_double(a), convert_to_r_double(b), inter);
+ll divide_and_conquer(vector<r>& px, vector<r>& py, int L, int R,
+                     pair<r,r> &best) {
+    int n = R - L;
+    if (n <= 3) {
+        vector<r> small(px.begin() + L, px.begin() + R);
+        return brute(small, best);
     }
+
+    int mid = (L + R) / 2;
+    ll x_mid = px[mid].x;
+
+    vector<r> ly, ry;
+    ly.reserve(mid-L);
+    ry.reserve(R-mid);
+    for (auto &p : py) {
+        if (p.x < x_mid || (p.x == x_mid && ly.size() < (size_t)(mid-L)))
+            ly.push_back(p);
+        else
+            ry.push_back(p);
+    }
+
+    pair<r,r> bestL, bestR;
+    ll dL = divide_and_conquer(px, ly, L, mid, bestL);
+    ll dR = divide_and_conquer(px, ry, mid, R, bestR);
+
+    ll d = dL < dR ? dL : dR;
+    best = (dL < dR ? bestL : bestR);
+
+    vector<r> sy;
+    sy.reserve(n);
+    ll delta = (ll)ceil(sqrt((long double)d));
+    for (auto &p : py) {
+        if (llabs(p.x - x_mid) < delta)
+            sy.push_back(p);
+    }
+
+    int m = sy.size();
+    for (int i = 0; i < m; i++) {
+        for (int j = i+1; j < m && j <= i + 7; j++) {
+            ll d2 = dist2(sy[i] - sy[j]);
+            if (d2 < d) {
+                d = d2;
+                best = {sy[i], sy[j]};
+            }
+        }
+    }
+    return d;
 }
 
-bool is_segment_line_intersect(r a, r b, r c, r d) {
-    line n = get_line_from_two_r(a, b);
-    line m = get_line_from_two_r(c, d);
-    if (is_equal(n, m)) {
-        return true;
-    } else if (is_parallel(n, m)) {
-        return false;
-    } else {
-        r_double inter = intersect_lines(n, m);
-        return is_on_segment(convert_to_r_double(a), convert_to_r_double(b), inter) && 
-                is_on_line(m, inter);
-    }
-}
-bool is_rays_intersect(r a, r b, r c, r d) {
-    line n = get_line_from_two_r(a, b);
-    line m = get_line_from_two_r(c, d);
-    if (is_equal(n, m)) {
-        return is_on_ray(a, ray{c, d})
-            || is_on_ray(c, ray{a, b});
-    } else if (is_parallel(n, m)) {
-        return false;
-    } else {
-        r_double inter = intersect_lines(n, m);
-        return is_on_ray(inter, c, d) && is_on_ray(inter, a, b);
-    }
-}
+pair<r,r> closest_pair(vector<r>& pts) {
+    int n = pts.size();
+    vector<r> Px = pts, Py = pts;
 
-bool is_ray_line_intersect(r a, r b, r c, r d) {
-    line n = get_line_from_two_r(a, b);
-    line m = get_line_from_two_r(c, d);
-    if (is_equal(n, m)) {
-        return true;
-    } else if (is_parallel(n, m)) {
-        return false;
-    } else {
-        r_double inter = intersect_lines(n, m);
-        return is_on_ray(inter, a, b) && is_on_line(m, inter);
-    }
-}
+    sort(Px.begin(), Px.end(), [](auto &a, auto &b){
+        return a.x < b.x;
+    });
+    sort(Py.begin(), Py.end(), [](auto &a, auto &b){
+        return a.y < b.y;
+    });
 
-double dist_dot_dot(r a, r b) {
-    return len(a - b);
+    pair<r,r> best;
+    divide_and_conquer(Px, Py, 0, n, best);
+    return best;
 }
-
-// [a, b], dot c
-double dist_dot_segment(r a, r b, r c) {
-    if (is_h_on_segment(a, b, c)) {
-        return get_h(a, b, c);
-    } else {
-        return min(dist_dot_dot(a, c), dist_dot_dot(b, c));
-    }
-}
-// [a, b), dot c
-double dist_dot_ray(r a, r b, r c) {
-    if (is_h_on_ray(a, b, c)) {
-        return get_h(a, b, c);
-    } else {
-        return dist_dot_dot(a, c);
-    }
-}
-// (a, b), dot c
-double dist_dot_line(r a, r b, r c) {
-    return get_h(a, b, c);
-}
-// [a, b], [c, d]
-double dist_segment_segment(r a, r b, r c, r d) {
-    if (is_segments_intersect(a, b, c, d)) {
-        return 0;
-    } else {
-        return min({
-            dist_dot_segment(a, b, c),
-            dist_dot_segment(a, b, d),
-            dist_dot_segment(c, d, a),
-            dist_dot_segment(c, d, b)
-        });
-    }
-}
-// [a, b], [c, d)
-double dist_segment_ray(r a, r b, r c, r d) {
-    if (is_segment_ray_intersect(a, b, c, d)) {
-        return 0;
-    } else {
-        return min({dist_dot_ray(c, d, a), dist_dot_ray(c, d, b), dist_dot_segment(a, b, c)});
-    }
-}
-
-// [a, b], (c, d)
-double dist_segment_line(r a, r b, r c, r d) {
-    if (is_segment_line_intersect(a, b, c, d)) {
-        return 0;
-    } else {
-        return min(dist_dot_line(c, d, a), dist_dot_line(c, d, b));
-    }
-}
-
-// [a, b), [c, d)
-double dist_ray_ray(r a, r b, r c, r d) {
-    if (is_rays_intersect(a, b, c, d)) {
-        return 0;
-    } else {
-        return min(dist_dot_ray(a, b, c), dist_dot_ray(c, d, a));
-    }
-}
-
-// [a, b), (c, d)
-double dist_ray_line(r a, r b, r c, r d) {
-    if (is_ray_line_intersect(a, b, c, d)) {
-        return 0;
-    } else {
-        return dist_dot_line(c, d, a);
-    }
-}
-
-// (a, b), (c, d)
-double dist_line_line(r a, r b, r c, r d) {
-    line n = get_line_from_two_r(a, b);
-    line m = get_line_from_two_r(c, d);
-    if (is_equal(n, m)) {
-        return 0;
-    } else if (is_parallel(n, m)) {
-        return dist_dot_line(a, b, c);
-    } else {
-        return 0;
-    }
-}
-
 
 void solve() {
-    r a, b, c, d;
-    cin >> a >> b >> c >> d;
-
-    setpr;
-
-    cout << dist_dot_dot(a, c) << '\n';
-    cout << dist_dot_segment(c, d, a) << '\n';
-    cout << dist_dot_ray(c, d, a) << '\n';
-    cout << dist_dot_line(c, d, a) << '\n';
-
-    cout << dist_dot_segment(a, b, c) << '\n';
-    cout << dist_segment_segment(a, b, c, d) << '\n';
-    cout << dist_segment_ray(a, b, c, d) << '\n';
-    cout << dist_segment_line(a, b, c, d) << '\n';
-
-    cout << dist_dot_ray(a, b, c) << '\n';
-    cout << dist_segment_ray(c, d, a, b) << '\n';
-    cout << dist_ray_ray(a, b, c, d) << '\n';
-    cout << dist_ray_line(a, b, c, d) << '\n';
-
-    cout << dist_dot_line(a, b, c) << '\n';
-    cout << dist_segment_line(c, d, a, b) << '\n';
-    cout << dist_ray_line(c, d, a, b) << '\n';
-    cout << dist_line_line(a, b, c, d) << '\n';
+    int n;
+    cin >> n;
+    vector<r> pts(n);
+    for (auto& p : pts) {
+        cin >> p;
+    }
+    pair<r, r> ans = closest_pair(pts);
+    cout << ans.ff << '\n' << ans.ss << '\n';
 }
 
 int main() {
