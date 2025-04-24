@@ -28,7 +28,7 @@ using pii = pair<int, int>;
 using pll = pair<ll, ll>;
 using vpii = vector<pii>;
 
-const double EPS = 1e-4;
+const double EPS = 1e-7;
 const double PI = acos(-1);
 const int INF = 1e9;
 const ll INFLL = 1e18;
@@ -48,116 +48,175 @@ const int MOD = 1e9 + 7;
 #define fast_input ios_base::sync_with_stdio(0)
 #define setpr cout << setprecision(9) << fixed
 
-struct event {
-    double y;
-    int type;
+struct r {
+    ll x, y;
+    r(ll x, ll y) : x(x), y(y) {;}
+    r() {;}
+    bool operator == (r a) {
+        return x == a.x && y == a.y;
+    }
+};
+istream& operator >>(istream& in, r& a) {
+    in >> a.x >> a.y;
+    return in;
+}
+ostream& operator <<(ostream& out, r a) {
+    out << a.x << ' ' << a.y;
+    return out;
+}
+r operator +(r a, r b) {
+    return {a.x + b.x, a.y + b.y};
+}
+r operator -(r a, r b) {
+    return {a.x - b.x, a.y - b.y};
+}
+r operator *(r a, int k) {
+    return {a.x * k, a.y * k};
+}
+ll operator *(r a, r b) {
+    return a.x * b.x + a.y * b.y;
+}
+ll operator %(r a, r b) {
+    return a.x * b.y - a.y * b.x;
+}
+ll sqr_len(r a) {
+    return a.x * a.x + a.y * a.y;
+}
+double len(r a) {
+    return hypot(a.x, a.y);
+}
+
+struct r_double {
+    double x, y;
+    r_double(double x, double y) : x(x), y(y) {;}
+    r_double() {;}
+};
+istream& operator >>(istream& in, r_double& a) {
+    in >> a.x >> a.y;
+    return in;
+}
+ostream& operator <<(ostream& out, r_double a) {
+    out << a.x << ' ' << a.y;
+    return out;
+}
+r_double operator +(r_double a, r_double b) {
+    return {a.x + b.x, a.y + b.y};
+}
+r_double operator -(r_double a, r_double b) {
+    return {a.x - b.x, a.y - b.y};
+}
+r_double operator *(r_double a, double k) {
+    return {a.x * k, a.y * k};
+}
+double operator *(r_double a, r_double b) {
+    return a.x * b.x + a.y * b.y;
+}
+double operator %(r_double a, r_double b) {
+    return a.x * b.y - a.y * b.x;
+}
+double len(r_double a) {
+    return hypot(a.x, a.y);
+}
+r_double convert_to_r_double(r a) {
+    return {(double)a.x, (double)a.y};
+}
+r_double norm(r_double a) {
+    return {a.x / len(a), a.y / len(a)};
+}
+r_double norm(r a) {
+    return norm(convert_to_r_double(a));
+}
+r_double get_bic(r_double a, r_double b, r_double o) {
+    r_double oa = norm(a - o);
+    r_double ob = norm(b - o);
+    return o + oa + ob;
+}
+
+struct line {
+    double a, b, c;
+    line(double a, double b, double c) : a(a), b(b), c(c) {;}
+    line() {;}
+};
+line get_line_parallel(r_double a, line n) {
+    return {n.a, n.b, -a.x * n.a -a.y * n.b};
+}
+line perpendicular(line n) {
+    return {n.b, -n.a, n.c};
+}
+line get_line_from_two_r(r a, r b) {
+    return {(double)a.y - b.y, (double)b.x - a.x, (double)(a % b)};
+}
+bool is_parallel(line n, line m) {
+    return n.a * m.b - n.b * m.a == 0;
+}
+bool is_equal(line n, line m) {
+    return n.a * m.b - n.b * m.a == 0 && n.a * m.c - n.c * m.a == 0 && n.b * m.c - n.c * m.b == 0;
+}
+r_double intersect_lines(line n, line m) {
+    return {(double)(n.b * m.c - n.c * m.b) / (n.a * m.b - n.b * m.a),
+        (double)(n.a * m.c - n.c * m.a) / (n.b * m.a - n.a * m.b)};
+}
+
+struct circle {
+    r_double o;
+    double radius;
 };
 
-const double smile_radius = 100.0;
-const double eye_radius = 30.0;
-const double teeth_radius = 60.0;
+circle get_circle_from_3(r a, r b, r c) {
+    r_double m1 = convert_to_r_double(a + b) * 0.5;
+    r_double m2 = convert_to_r_double(b + c) * 0.5;
+    line n = get_line_parallel(m1, perpendicular(get_line_from_two_r(a, b)));
+    line m = get_line_parallel(m2, perpendicular(get_line_from_two_r(b, c)));
 
-vector<event> ms;
-vector<event> s1;
-vector<event> s2;
-
-bool in_circle(double x, double x1, double y1, double radius) {
-    return x < x1 + radius && x > x1 - radius;
+    r_double o = intersect_lines(n, m);
+    return {o, len(o - convert_to_r_double(a))};
 }
 
-pair<double, double> line_circle_intersection(double x, double x1, double y1, double r) {
-    double length = sqrt(r * r - (x - x1) * (x - x1));
-    return {y1 - length, y1 + length};
+circle get_circle_from_2(const r &a, const r &b) {
+    r_double da = convert_to_r_double(a);
+    r_double db = convert_to_r_double(b);
+    r_double center = {(da.x + db.x) * 0.5, (da.y + db.y) * 0.5};
+    return {center, len(da - center)};
 }
 
-pair<double, double> line_teeth_intersection(double x, double x1, double y1, double r) {
-    double length = sqrt(r * r - (x - x1) * (x - x1));
-    return pair<double, double>(y1 - length, y1);
-}
-
-void intersect(double x, double x1, double y1, vector<event>& segments) {
-    segments.clear();
-
-    if (!in_circle(x, x1, y1, smile_radius)) {
-        return;
-    }
-
-    auto smile_points = line_circle_intersection(x, x1, y1, smile_radius);
-    segments.pb({smile_points.first, 1});
-
-    if (in_circle(x, x1, y1 - 20, teeth_radius)) {
-        auto teeth_points = line_teeth_intersection(x, x1, y1 - 20, teeth_radius);
-        segments.pb({teeth_points.first, -1});
-        segments.pb({teeth_points.second, 1});
-    }
-
-
-    if (in_circle(x, x1 - 40, y1 + 30, eye_radius) || in_circle(x, x1 + 40, y1 + 30, eye_radius)) {
-        pair<double, double> eye_points;
-        if (in_circle(x, x1 - 40, y1 + 30, eye_radius)) {
-            eye_points = line_circle_intersection(x, x1 - 40, y1 + 30, eye_radius);
-        } else {
-            eye_points = line_circle_intersection(x, x1 + 40, y1 + 30, eye_radius);
-        }
-        segments.pb({eye_points.first, -1});
-        segments.pb({eye_points.second, 1});
-    }
-    segments.pb({smile_points.second, -1});
-}
-
-double len_union() {
-    ms.clear();
-
-    int l = 0;
-    int r = 0;
-    while (l < sz(s1) && r < sz(s2)) {
-        if (s1[l].y <= s2[r].y) {
-            ms.pb(s1[l]);
-            l++;
-        } else {
-            ms.pb(s2[r]);
-            r++;
-        }
-    }
-    while (l < sz(s1)) {
-        ms.pb(s1[l]);
-        l++;
-    }
-    while (r < sz(s2)) {
-        ms.pb(s2[r]);
-        r++;
-    }
-
-    double len = 0;
-    int cnt = 0;
-    double last_open;
-    for (auto [y, type] : ms) {
-        cnt += type;
-        if (cnt == 1 && type == 1) {
-            last_open = y;
-        }
-
-        if (cnt == 0) {
-            len += y - last_open;
-        }
-    }
-    return len;
+bool is_in_circle(r p, circle c) {
+    return len(convert_to_r_double(p) - c.o) <= c.radius + EPS;
 }
 
 void solve() {
-    double x1, y1, x2, y2;
-    cin >> x1 >> y1 >> x2 >> y2;
-    double lx = min(x1, x2) - 100;
-    double rx = max(x1, x2) + 100;
-
-    double square = 0;
-    for (double x = lx; x < rx; x += EPS) {
-        intersect(x, x1, y1, s1);
-        intersect(x, x2, y2, s2);
-        square += len_union() * EPS;
+    int n;
+    cin >> n;
+    vector<r> pts(n);
+    for (int i = 0; i < n; i++) {
+        cin >> pts[i];
     }
 
-    cout << square << '\n';
+    mt19937 rnd(chrono::steady_clock::now().time_since_epoch().count());
+    shuffle(pts.begin(), pts.end(), rnd);
+
+    circle c;
+    c.o = convert_to_r_double(pts[0]);
+    c.radius = 0;
+
+    for (int i = 1; i < n; i++) {
+        if (!is_in_circle(pts[i], c)) {
+            c.o = convert_to_r_double(pts[i]);
+            c.radius = 0;
+            for (int j = 0; j < i; ++j) {
+                if (!is_in_circle(pts[j], c)) {
+                    c = get_circle_from_2(pts[i], pts[j]);
+                    for (int k = 0; k < j; ++k) {
+                        if (!is_in_circle(pts[k], c)) {
+                            c = get_circle_from_3(pts[i], pts[j], pts[k]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    setpr;
+    cout << c.o.x << ' ' << c.o.y << '\n' << c.radius << '\n';
 }
 
 int main() {
