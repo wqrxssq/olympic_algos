@@ -1,6 +1,7 @@
 #include <math.h>
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <chrono>
 #include <cstring>
@@ -27,13 +28,14 @@ using pii = pair<int, int>;
 using pll = pair<ll, ll>;
 using vpii = vector<pii>;
 
-const double EPS = 1e-6;
+const double EPS = 1e-4;
 const double PI = acos(-1);
 const int INF = 1e9;
 const ll INFLL = 1e18;
 const int MOD = 1e9 + 7;
 
 #define all(_x) _x.begin(), _x.end()
+#define sz(_x) _x.size()
 #define rall(_x) _x.rbegin(), _x.rend()
 #define pb push_back
 #define ff first
@@ -46,118 +48,116 @@ const int MOD = 1e9 + 7;
 #define fast_input ios_base::sync_with_stdio(0)
 #define setpr cout << setprecision(9) << fixed
 
-mt19937 rnd(0);
-struct r {
-    ll x, y;
+struct event {
+    double y;
+    int type;
 };
 
-istream& operator >>(istream& in, r& p) {
-    in >> p.x >> p.y;
-    return in;
-}
-ostream& operator <<(ostream& out, r p) {
-    out << p.x << ' ' << p.y;
-    return out;
+const double smile_radius = 100.0;
+const double eye_radius = 30.0;
+const double teeth_radius = 60.0;
+
+vector<event> ms;
+vector<event> s1;
+vector<event> s2;
+
+bool in_circle(double x, double x1, double y1, double radius) {
+    return x < x1 + radius && x > x1 - radius;
 }
 
-r operator +(r a, r b) {
-    return {a.x + b.x, a.y + b.y};
-}
-r operator -(r a, r b) {
-    return {a.x - b.x, a.y - b.y};
-}
-ll dist2(r a) {
-    return a.x * a.x + a.y * a.y;
+pair<double, double> line_circle_intersection(double x, double x1, double y1, double r) {
+    double length = sqrt(r * r - (x - x1) * (x - x1));
+    return {y1 - length, y1 + length};
 }
 
-ll brute(vector<r>& pts, pair<r,r> &best) {
-    ll d = LLONG_MAX;
-    for (int i = 0; i < pts.size(); i++) {
-        for (int j = i + 1; j < pts.size(); j++) {
-            ll d2 = dist2(pts[i] - pts[j]);
-            if (d2 < d) {
-                d = d2;
-                best = {pts[i], pts[j]};
-            }
+pair<double, double> line_teeth_intersection(double x, double x1, double y1, double r) {
+    double length = sqrt(r * r - (x - x1) * (x - x1));
+    return pair<double, double>(y1 - length, y1);
+}
+
+void intersect(double x, double x1, double y1, vector<event>& segments) {
+    segments.clear();
+
+    if (!in_circle(x, x1, y1, smile_radius)) {
+        return;
+    }
+
+    auto smile_points = line_circle_intersection(x, x1, y1, smile_radius);
+    segments.pb({smile_points.first, 1});
+
+    if (in_circle(x, x1, y1 - 20, teeth_radius)) {
+        auto teeth_points = line_teeth_intersection(x, x1, y1 - 20, teeth_radius);
+        segments.pb({teeth_points.first, -1});
+        segments.pb({teeth_points.second, 1});
+    }
+
+
+    if (in_circle(x, x1 - 40, y1 + 30, eye_radius) || in_circle(x, x1 + 40, y1 + 30, eye_radius)) {
+        pair<double, double> eye_points;
+        if (in_circle(x, x1 - 40, y1 + 30, eye_radius)) {
+            eye_points = line_circle_intersection(x, x1 - 40, y1 + 30, eye_radius);
+        } else {
+            eye_points = line_circle_intersection(x, x1 + 40, y1 + 30, eye_radius);
+        }
+        segments.pb({eye_points.first, -1});
+        segments.pb({eye_points.second, 1});
+    }
+    segments.pb({smile_points.second, -1});
+}
+
+double len_union() {
+    ms.clear();
+
+    int l = 0;
+    int r = 0;
+    while (l < sz(s1) && r < sz(s2)) {
+        if (s1[l].y <= s2[r].y) {
+            ms.pb(s1[l]);
+            l++;
+        } else {
+            ms.pb(s2[r]);
+            r++;
         }
     }
-    return d;
-}
-
-ll divide_and_conquer(vector<r>& px, vector<r>& py, int L, int R,
-                     pair<r,r> &best) {
-    int n = R - L;
-    if (n <= 3) {
-        vector<r> small(px.begin() + L, px.begin() + R);
-        return brute(small, best);
+    while (l < sz(s1)) {
+        ms.pb(s1[l]);
+        l++;
+    }
+    while (r < sz(s2)) {
+        ms.pb(s2[r]);
+        r++;
     }
 
-    int mid = (L + R) / 2;
-    ll x_mid = px[mid].x;
+    double len = 0;
+    int cnt = 0;
+    double last_open;
+    for (auto [y, type] : ms) {
+        cnt += type;
+        if (cnt == 1 && type == 1) {
+            last_open = y;
+        }
 
-    vector<r> ly, ry;
-    ly.reserve(mid-L);
-    ry.reserve(R-mid);
-    for (auto &p : py) {
-        if (p.x < x_mid || (p.x == x_mid && ly.size() < (size_t)(mid-L)))
-            ly.push_back(p);
-        else
-            ry.push_back(p);
-    }
-
-    pair<r,r> bestL, bestR;
-    ll dL = divide_and_conquer(px, ly, L, mid, bestL);
-    ll dR = divide_and_conquer(px, ry, mid, R, bestR);
-
-    ll d = dL < dR ? dL : dR;
-    best = (dL < dR ? bestL : bestR);
-
-    vector<r> sy;
-    sy.reserve(n);
-    ll delta = (ll)ceil(sqrt((long double)d));
-    for (auto &p : py) {
-        if (llabs(p.x - x_mid) < delta)
-            sy.push_back(p);
-    }
-
-    int m = sy.size();
-    for (int i = 0; i < m; i++) {
-        for (int j = i+1; j < m && j <= i + 7; j++) {
-            ll d2 = dist2(sy[i] - sy[j]);
-            if (d2 < d) {
-                d = d2;
-                best = {sy[i], sy[j]};
-            }
+        if (cnt == 0) {
+            len += y - last_open;
         }
     }
-    return d;
-}
-
-pair<r,r> closest_pair(vector<r>& pts) {
-    int n = pts.size();
-    vector<r> Px = pts, Py = pts;
-
-    sort(Px.begin(), Px.end(), [](auto &a, auto &b){
-        return a.x < b.x;
-    });
-    sort(Py.begin(), Py.end(), [](auto &a, auto &b){
-        return a.y < b.y;
-    });
-
-    pair<r,r> best;
-    divide_and_conquer(Px, Py, 0, n, best);
-    return best;
+    return len;
 }
 
 void solve() {
-    int n;
-    cin >> n;
-    vector<r> pts(n);
-    for (auto& p : pts) {
-        cin >> p;
+    double x1, y1, x2, y2;
+    cin >> x1 >> y1 >> x2 >> y2;
+    double lx = min(x1, x2) - 100;
+    double rx = max(x1, x2) + 100;
+
+    double square = 0;
+    for (double x = lx; x < rx; x += EPS) {
+        intersect(x, x1, y1, s1);
+        intersect(x, x2, y2, s2);
+        square += len_union() * EPS;
     }
-    pair<r, r> ans = closest_pair(pts);
-    cout << ans.ff << '\n' << ans.ss << '\n';
+
+    cout << square << '\n';
 }
 
 int main() {
@@ -166,6 +166,7 @@ int main() {
     freopen("in.txt", "r", stdin);
     freopen("out.txt", "w", stdout);
 #endif
+    setpr;
     solve();
     return 0;
 }
