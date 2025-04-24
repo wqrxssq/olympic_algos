@@ -27,8 +27,9 @@ using vll = vector<ll>;
 using pii = pair<int, int>;
 using pll = pair<ll, ll>;
 using vpii = vector<pii>;
+using ld = long double;
 
-const double EPS = 1e-7;
+const double EPS = 1e-10;
 const double PI = acos(-1);
 const int INF = 1e9;
 const ll INFLL = 1e18;
@@ -85,138 +86,116 @@ ll sqr_len(r a) {
 double len(r a) {
     return hypot(a.x, a.y);
 }
-
-struct r_double {
-    double x, y;
-    r_double(double x, double y) : x(x), y(y) {;}
-    r_double() {;}
-};
-istream& operator >>(istream& in, r_double& a) {
-    in >> a.x >> a.y;
-    return in;
+bool is_on_segment(r a, r b, r c) {
+    if ((b - a) % (c - a) == 0 &&
+        c.x >= min(a.x, b.x) && c.x <= max(b.x, a.x) &&
+        c.y >= min(a.y, b.y) && c.y <= max(a.y, b.y))
+        return true;
+    return false;
 }
-ostream& operator <<(ostream& out, r_double a) {
-    out << a.x << ' ' << a.y;
-    return out;
+bool is_on_line(r a, r b, r c) {
+    return (b - a) % (c - a) == 0;
 }
-r_double operator +(r_double a, r_double b) {
-    return {a.x + b.x, a.y + b.y};
+bool is_h_on_segment(r a, r b, r c) {
+    return (b - a) * (c - a) >= 0 && (a - b) * (c - b) >= 0;
 }
-r_double operator -(r_double a, r_double b) {
-    return {a.x - b.x, a.y - b.y};
-}
-r_double operator *(r_double a, double k) {
-    return {a.x * k, a.y * k};
-}
-double operator *(r_double a, r_double b) {
-    return a.x * b.x + a.y * b.y;
-}
-double operator %(r_double a, r_double b) {
-    return a.x * b.y - a.y * b.x;
-}
-double len(r_double a) {
-    return hypot(a.x, a.y);
-}
-r_double convert_to_r_double(r a) {
-    return {(double)a.x, (double)a.y};
-}
-r_double norm(r_double a) {
-    return {a.x / len(a), a.y / len(a)};
-}
-r_double norm(r a) {
-    return norm(convert_to_r_double(a));
-}
-r_double get_bic(r_double a, r_double b, r_double o) {
-    r_double oa = norm(a - o);
-    r_double ob = norm(b - o);
-    return o + oa + ob;
+double get_h(r a, r b, r c) {
+    if (a == b)
+        return len(c - a);
+    return fabs(double((b - a) % (c - a)) / len(b - a));
 }
 
-struct line {
-    double a, b, c;
-    line(double a, double b, double c) : a(a), b(b), c(c) {;}
-    line() {;}
-};
-line get_line_parallel(r_double a, line n) {
-    return {n.a, n.b, -a.x * n.a -a.y * n.b};
-}
-line perpendicular(line n) {
-    return {n.b, -n.a, n.c};
-}
-line get_line_from_two_r(r a, r b) {
-    return {(double)a.y - b.y, (double)b.x - a.x, (double)(a % b)};
-}
-bool is_parallel(line n, line m) {
-    return n.a * m.b - n.b * m.a == 0;
-}
-bool is_equal(line n, line m) {
-    return n.a * m.b - n.b * m.a == 0 && n.a * m.c - n.c * m.a == 0 && n.b * m.c - n.c * m.b == 0;
-}
-r_double intersect_lines(line n, line m) {
-    return {(double)(n.b * m.c - n.c * m.b) / (n.a * m.b - n.b * m.a),
-        (double)(n.a * m.c - n.c * m.a) / (n.b * m.a - n.a * m.b)};
+double dist_point_to_segment(r a, r b, r c) {
+    if (is_h_on_segment(a, b, c)) {
+        return get_h(a, b, c);
+    } else {
+        return min(len(c - a), len(c - b));
+    }
 }
 
-struct circle {
-    r_double o;
-    double radius;
-};
-
-circle get_circle_from_3(r a, r b, r c) {
-    r_double m1 = convert_to_r_double(a + b) * 0.5;
-    r_double m2 = convert_to_r_double(b + c) * 0.5;
-    line n = get_line_parallel(m1, perpendicular(get_line_from_two_r(a, b)));
-    line m = get_line_parallel(m2, perpendicular(get_line_from_two_r(b, c)));
-
-    r_double o = intersect_lines(n, m);
-    return {o, len(o - convert_to_r_double(a))};
+bool is_in_poly(r a, vector<r>& P) {
+    int n = sz(P);
+    bool flag = (a - P[0]) % (a - P[1]) >= 0;
+    for (int i = 0; i < n; i++) {
+        if (((a - P[i]) % (a - P[(i + 1) % n]) >= 0) != flag) {
+            return false;
+        }
+    }
+    return true;
 }
 
-circle get_circle_from_2(const r &a, const r &b) {
-    r_double da = convert_to_r_double(a);
-    r_double db = convert_to_r_double(b);
-    r_double center = {(da.x + db.x) * 0.5, (da.y + db.y) * 0.5};
-    return {center, len(da - center)};
+double dist_dot_polygon(r a, vector<r>& P) {
+    if (is_in_poly(a, P)) {
+        return 0;
+    } else {
+        int n = sz(P);
+        double res = INFLL;
+        for (int i = 0; i < n; i++) {
+            res = min(res, dist_point_to_segment(P[i], P[(i + 1) % n], a));
+        }
+        return res;
+    }
 }
 
-bool is_in_circle(r p, circle c) {
-    return len(convert_to_r_double(p) - c.o) <= c.radius + EPS;
+void reorder_polygon(vector<r> & P){
+    int pos = 0;
+    for (int i = 1; i < P.size(); i++){
+        if (P[i].y < P[pos].y || (P[i].y == P[pos].y && P[i].x < P[pos].x))
+            pos = i;
+    }
+    rotate(P.begin(), P.begin() + pos, P.end());
+}
+
+vector<r> minkowski(vector<r>& P, vector<r>& Q){
+    reorder_polygon(P);
+    reorder_polygon(Q);
+
+    P.push_back(P[0]);
+    P.push_back(P[1]);
+    Q.push_back(Q[0]);
+    Q.push_back(Q[1]);
+
+    vector<r> result;
+    int i = 0, j = 0;
+    while (i < P.size() - 2 || j < Q.size() - 2) {
+        result.push_back(P[i] + Q[j]);
+        auto cross = (P[i + 1] - P[i]) % (Q[j + 1] - Q[j]);
+        if (cross >= 0 && i < P.size() - 2)
+            i++;
+        if (cross <= 0 && j < Q.size() - 2)
+            j++;
+    }
+    return result;
+}
+
+double dist_2_polygons(vector<r>& P, vector<r>& Q) {
+    for (r& p : Q) {
+        p = p * -1;
+    }
+
+    vector<r> sum_minkowski = minkowski(P, Q);
+
+    return dist_dot_polygon(r{0, 0}, sum_minkowski);
 }
 
 void solve() {
     int n;
     cin >> n;
-    vector<r> pts(n);
+    vector<r> P(n);
     for (int i = 0; i < n; i++) {
-        cin >> pts[i];
+        cin >> P[i];
     }
+    reverse(all(P));
 
-    mt19937 rnd(chrono::steady_clock::now().time_since_epoch().count());
-    shuffle(pts.begin(), pts.end(), rnd);
-
-    circle c;
-    c.o = convert_to_r_double(pts[0]);
-    c.radius = 0;
-
-    for (int i = 1; i < n; i++) {
-        if (!is_in_circle(pts[i], c)) {
-            c.o = convert_to_r_double(pts[i]);
-            c.radius = 0;
-            for (int j = 0; j < i; ++j) {
-                if (!is_in_circle(pts[j], c)) {
-                    c = get_circle_from_2(pts[i], pts[j]);
-                    for (int k = 0; k < j; ++k) {
-                        if (!is_in_circle(pts[k], c)) {
-                            c = get_circle_from_3(pts[i], pts[j], pts[k]);
-                        }
-                    }
-                }
-            }
-        }
+    int m;
+    cin >> m;
+    vector<r> Q(m);
+    for (int i = 0; i < m; i++) {
+        cin >> Q[i];
     }
+    reverse(all(Q));
 
-    setpr;
-    cout << c.o.x << ' ' << c.o.y << '\n' << c.radius << '\n';
+    cout << dist_2_polygons(P, Q) << '\n';
 }
 
 int main() {
