@@ -31,7 +31,7 @@ using pll = pair<ll, ll>;
 using vpii = vector<pii>;
 using ld = long double;
 
-const double EPS = 5e-6;
+const double EPS = 1e-9;
 const double PI = acos(-1);
 const int INF = 1e9;
 const ll INFLL = 1e18;
@@ -51,89 +51,114 @@ const int MOD = 1e9 + 7;
 #define fast_input ios_base::sync_with_stdio(0)
 #define setpr cout << setprecision(9) << fixed
 
-struct Point {
-    ll x, y;
-};
-
-double dist(Point a, Point b) {
-    return sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
-}
-
-struct CellHash {
-    size_t operator()(const pll& p) const {
-        return (size_t)(p.first * 0x9e3779b97f4a7c15ULL ^ (p.second<<1));
+struct Seg {
+    ll x1, y1, x2, y2;
+    int id;
+    double get_y(double x) const {
+        return y1 + (y2 - y1) * (x - x1) / double(x2 - x1);
     }
 };
 
-const int MAXN = 2e5;
-int n;
-Point a[MAXN];
-unordered_map<pll, vi, CellHash> grid;
+static double currentX;
+vector<Seg> segs;
 
-mt19937 rnd(1);
-
-void rebuild(int k, double L) {
-    grid.clear();
-    for (int i = 0; i <= k; i++) {
-        ll cx = a[i].x / L;
-        ll cy = a[i].y / L;
-        grid[{cx, cy}].pb(i);
+struct Cmp {
+    bool operator()(int i, int j) const {
+        double yi = segs[i].get_y(currentX);
+        double yj = segs[j].get_y(currentX);
+        if (yi + EPS < yj) return true;
+        if (yj + EPS < yi) return false;
+        return i < j;
     }
+};
+
+int orient(ll ax, ll ay, ll bx, ll by, ll cx, ll cy) {
+    ll v = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+    if (v > 0) return 1;
+    if (v < 0) return -1;
+    return 0;
 }
 
-double calc(int pos, double L) {
-    ll cx = a[pos].x / L;
-    ll cy = a[pos].y / L;
-    vector<Point> t;
-    for (ll dx = -1; dx <= 1; dx++) {
-        for (ll dy = -1; dy <= 1; dy++) {
-            auto it = grid.find({cx + dx, cy + dy});
-            if (it == grid.end()) {
-                continue;
-            }
-            for (int v : it->second) {
-                if (dist(a[pos], a[v]) < L) {
-                    t.pb(a[v]);
-                }
-            }
-        }
-    }
-
-    double min_dist = INFLL;
-    for (int i = 0; i < sz(t); i++) {
-        for (int j = i + 1; j < sz(t); j++) {
-            if (dist(t[i], t[j]) < L) {
-                min_dist = min(min_dist, max({dist(t[i], t[j]), dist(t[i], a[pos]), dist(t[j], a[pos])}));
-            }
-        }
-    }
-    return min_dist;
+bool onSeg1D(ll a, ll b, ll c, ll d) {
+    if (a > b) swap(a, b);
+    if (c > d) swap(c, d);
+    return max(a, c) <= min(b, d);
 }
+
+bool intersect(int i, int j) {
+    auto &A = segs[i], &B = segs[j];
+    if (!onSeg1D(A.x1, A.x2, B.x1, B.x2)) return false;
+    if (!onSeg1D(A.y1, A.y2, B.y1, B.y2)) return false;
+    int o1 = orient(A.x1, A.y1, A.x2, A.y2, B.x1, B.y1);
+    int o2 = orient(A.x1, A.y1, A.x2, A.y2, B.x2, B.y2);
+    int o3 = orient(B.x1, B.y1, B.x2, B.y2, A.x1, A.y1);
+    int o4 = orient(B.x1, B.y1, B.x2, B.y2, A.x2, A.y2);
+    if (o1 * o2 < 0 && o3 * o4 < 0) return true;
+    if (o1 == 0 && onSeg1D(A.x1, A.x2, B.x1, B.x1) && onSeg1D(A.y1, A.y2, B.y1, B.y1)) return true;
+    if (o2 == 0 && onSeg1D(A.x1, A.x2, B.x2, B.x2) && onSeg1D(A.y1, A.y2, B.y2, B.y2)) return true;
+    if (o3 == 0 && onSeg1D(B.x1, B.x2, A.x1, A.x1) && onSeg1D(B.y1, B.y2, A.y1, A.y1)) return true;
+    if (o4 == 0 && onSeg1D(B.x1, B.x2, A.x2, A.x2) && onSeg1D(B.y1, B.y2, A.y2, A.y2)) return true;
+    return false;
+}
+
+struct Event {
+    ll x;
+    int tp, id;
+    bool operator<(Event const& e) const {
+        if (x != e.x) return x < e.x;
+        return tp > e.tp;
+    }
+};
 
 void solve() {
+    int n;
     cin >> n;
-    ll minx = 1e18, maxx = -1e18, miny = 1e18, maxy = -1e18;
-    for(int i = 0; i < n; i++){
-        cin >> a[i].x >> a[i].y;
+    segs.resize(n);
+    vector<Event> ev;
+    ev.reserve(2 * n);
+    for (int i = 0; i < n; i++) {
+        ll x1, y1, x2, y2;
+        cin >> x1 >> y1 >> x2 >> y2;
+        if (x1 > x2) {
+            swap(x1, x2);
+            swap(y1, y2);
+        }
+        segs[i] = {x1, y1, x2, y2, i};
+        ev.push_back({x1, +1, i});
+        ev.push_back({x2, -1, i});
     }
-
-    shuffle(a, a + n, rnd);
-    grid.reserve(MAXN * 4);
-
-    double L = max({dist(a[0], a[1]), dist(a[0], a[2]), dist(a[1], a[2])});
-    rebuild(2, L);
-
-    for (int i = 3; i < n; i++) {
-        double dL = calc(i, L);
-        if (dL < L) {
-            L = dL;
-            rebuild(i, L);
+    sort(all(ev));
+    set<int, Cmp> active;
+    vector<set<int, Cmp>::iterator> where(n);
+    for (auto &e : ev) {
+        currentX = e.x;
+        int id = e.id;
+        if (e.tp == +1) {
+            auto it = active.lower_bound(id);
+            if (it != active.end() && intersect(*it, id)) {
+                cout << "YES\n";
+                return;
+            }
+            if (it != active.begin()) {
+                auto jt = prev(it);
+                if (intersect(*jt, id)) {
+                    cout << "YES\n";
+                    return;
+                }
+            }
+            where[id] = active.insert(it, id);
         } else {
-            grid[{a[i].x / L, a[i].y / L}].pb(i);
+            auto it = where[id];
+            auto nxt = next(it);
+            auto prv = (it == active.begin() ? active.end() : prev(it));
+            if (nxt != active.end() && prv != active.end() && intersect(*nxt, *prv)) {
+                cout << "YES\n";
+                return;
+            }
+            active.erase(it);
         }
     }
-
-    cout << L << '\n';
+    cout << "NO\n";
 }
 
 int main() {
