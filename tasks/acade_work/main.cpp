@@ -48,13 +48,14 @@ const int MOD = 1e9 + 7;
     cout << '\n'
 #define cin_arr(_x) \
     for (auto &el : _x) cin >> el;
-#define fast_input ios_base::sync_with_stdio(0)
+#define fast_input ios_base::sync_with_stdio(0); cin.tie(nullptr)
 #define setpr cout << setprecision(9) << fixed
 
 struct Seg {
     ll x1, y1, x2, y2;
     int id;
     double get_y(double x) const {
+        if (x2 == x1) return y1;
         return y1 + (y2 - y1) * (x - x1) / double(x2 - x1);
     }
 };
@@ -79,25 +80,23 @@ int orient(ll ax, ll ay, ll bx, ll by, ll cx, ll cy) {
     return 0;
 }
 
-bool onSeg1D(ll a, ll b, ll c, ll d) {
-    if (a > b) swap(a, b);
-    if (c > d) swap(c, d);
-    return max(a, c) <= min(b, d);
-}
-
 bool intersect(int i, int j) {
     auto &A = segs[i], &B = segs[j];
-    if (!onSeg1D(A.x1, A.x2, B.x1, B.x2)) return false;
-    if (!onSeg1D(A.y1, A.y2, B.y1, B.y2)) return false;
-    int o1 = orient(A.x1, A.y1, A.x2, A.y2, B.x1, B.y1);
-    int o2 = orient(A.x1, A.y1, A.x2, A.y2, B.x2, B.y2);
-    int o3 = orient(B.x1, B.y1, B.x2, B.y2, A.x1, A.y1);
-    int o4 = orient(B.x1, B.y1, B.x2, B.y2, A.x2, A.y2);
+    ll ax1 = A.x1, ay1 = A.y1, ax2 = A.x2, ay2 = A.y2;
+    ll bx1 = B.x1, by1 = B.y1, bx2 = B.x2, by2 = B.y2;
+    int o1 = orient(ax1, ay1, ax2, ay2, bx1, by1);
+    int o2 = orient(ax1, ay1, ax2, ay2, bx2, by2);
+    int o3 = orient(bx1, by1, bx2, by2, ax1, ay1);
+    int o4 = orient(bx1, by1, bx2, by2, ax2, ay2);
     if (o1 * o2 < 0 && o3 * o4 < 0) return true;
-    if (o1 == 0 && onSeg1D(A.x1, A.x2, B.x1, B.x1) && onSeg1D(A.y1, A.y2, B.y1, B.y1)) return true;
-    if (o2 == 0 && onSeg1D(A.x1, A.x2, B.x2, B.x2) && onSeg1D(A.y1, A.y2, B.y2, B.y2)) return true;
-    if (o3 == 0 && onSeg1D(B.x1, B.x2, A.x1, A.x1) && onSeg1D(B.y1, B.y2, A.y1, A.y1)) return true;
-    if (o4 == 0 && onSeg1D(B.x1, B.x2, A.x2, A.x2) && onSeg1D(B.y1, B.y2, A.y2, A.y2)) return true;
+    if (o1 == 0 && min(ax1, ax2) <= bx1 && bx1 <= max(ax1, ax2) &&
+        min(ay1, ay2) <= by1 && by1 <= max(ay1, ay2)) return true;
+    if (o2 == 0 && min(ax1, ax2) <= bx2 && bx2 <= max(ax1, ax2) &&
+        min(ay1, ay2) <= by2 && by2 <= max(ay1, ay2)) return true;
+    if (o3 == 0 && min(bx1, bx2) <= ax1 && ax1 <= max(bx1, bx2) &&
+        min(by1, by2) <= ay1 && ay1 <= max(by1, by2)) return true;
+    if (o4 == 0 && min(bx1, bx2) <= ax2 && ax2 <= max(bx1, bx2) &&
+        min(by1, by2) <= ay2 && ay2 <= max(by1, by2)) return true;
     return false;
 }
 
@@ -163,11 +162,11 @@ void solve() {
 
 int main() {
     fast_input;
+    setpr;
 #ifdef __APPLE__
     freopen("in.txt", "r", stdin);
     freopen("out.txt", "w", stdout);
 #endif
-    setpr;
     solve();
     return 0;
 }
