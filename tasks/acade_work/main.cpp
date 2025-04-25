@@ -1,3 +1,5 @@
+#pragma GCC optimize("O3,unroll-loops")
+
 #include <math.h>
 
 #include <algorithm>
@@ -29,7 +31,7 @@ using pll = pair<ll, ll>;
 using vpii = vector<pii>;
 using ld = long double;
 
-const double EPS = 1e-10;
+const double EPS = 5e-6;
 const double PI = acos(-1);
 const int INF = 1e9;
 const ll INFLL = 1e18;
@@ -49,168 +51,89 @@ const int MOD = 1e9 + 7;
 #define fast_input ios_base::sync_with_stdio(0)
 #define setpr cout << setprecision(9) << fixed
 
-struct r {
+struct Point {
     ll x, y;
-    r(ll x, ll y) : x(x), y(y) {;}
-    r() {;}
-    bool operator == (r a) {
-        return x == a.x && y == a.y;
+};
+
+double dist(Point a, Point b) {
+    return sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
+}
+
+struct CellHash {
+    size_t operator()(const pll& p) const {
+        return (size_t)(p.first * 0x9e3779b97f4a7c15ULL ^ (p.second<<1));
     }
 };
-istream& operator >>(istream& in, r& a) {
-    in >> a.x >> a.y;
-    return in;
-}
-ostream& operator <<(ostream& out, r a) {
-    out << a.x << ' ' << a.y;
-    return out;
-}
-r operator +(r a, r b) {
-    return {a.x + b.x, a.y + b.y};
-}
-r operator -(r a, r b) {
-    return {a.x - b.x, a.y - b.y};
-}
-r operator *(r a, int k) {
-    return {a.x * k, a.y * k};
-}
-ll operator *(r a, r b) {
-    return a.x * b.x + a.y * b.y;
-}
-ll operator %(r a, r b) {
-    return a.x * b.y - a.y * b.x;
-}
-ll sqr_len(r a) {
-    return a.x * a.x + a.y * a.y;
-}
-double len(r a) {
-    return hypot(a.x, a.y);
-}
-bool is_on_segment(r a, r b, r c) {
-    if ((b - a) % (c - a) == 0 &&
-        c.x >= min(a.x, b.x) && c.x <= max(b.x, a.x) &&
-        c.y >= min(a.y, b.y) && c.y <= max(a.y, b.y))
-        return true;
-    return false;
-}
-bool is_on_line(r a, r b, r c) {
-    return (b - a) % (c - a) == 0;
-}
-bool is_h_on_segment(r a, r b, r c) {
-    return (b - a) * (c - a) >= 0 && (a - b) * (c - b) >= 0;
-}
-double get_h(r a, r b, r c) {
-    if (a == b)
-        return len(c - a);
-    return fabs(double((b - a) % (c - a)) / len(b - a));
-}
 
-double angle(r a) {
-    return atan2(a.y, a.x);
-}
-double norm(double rad) {
-    return (rad < 0 ? rad + 2 * PI : rad);
-}
+const int MAXN = 2e5;
+int n;
+Point a[MAXN];
+unordered_map<pll, vi, CellHash> grid;
 
-struct line {
-    ll a, b, c;
-};
+mt19937 rnd(1);
 
-bool brute(vector<r>& P, line n) {
-    if (sz(P) == 1) {
-        return P[0].x * n.a + P[0].y * n.b + n.c == 0;
-    } else {
-        return P[0].x * n.a + P[0].y * n.b + n.c == 0 ||
-               P[1].x * n.a + P[1].y * n.b + n.c == 0 ||
-               ((P[0].x * n.a + P[0].y * n.b + n.c > 0) != (P[1].x * n.a + P[1].y * n.b + n.c > 0));
+void rebuild(int k, double L) {
+    grid.clear();
+    for (int i = 0; i <= k; i++) {
+        ll cx = a[i].x / L;
+        ll cy = a[i].y / L;
+        grid[{cx, cy}].pb(i);
     }
 }
 
-ll get_c(vector<r>& hull, vector<double>& dirs, r val, line n) {
-    double angle_val = norm(angle(val));
-    int pos = lower_bound(all(dirs), angle_val) - dirs.begin();
-
-    // Ax + By + C = 0
-    // C = -Ax - By
-
-    pos %= sz(hull);
-
-    return -n.a * hull[pos].x - n.b * hull[pos].y;
-}
-
-vector<r> graham(vector<r>& P) {
-    r p0 = P[0];
-    for (r p : P) {
-        if (p.y < p0.y || (p.y == p0.y && p.x < p0.x)) {
-            p0 = p;
+double calc(int pos, double L) {
+    ll cx = a[pos].x / L;
+    ll cy = a[pos].y / L;
+    vector<Point> t;
+    for (ll dx = -1; dx <= 1; dx++) {
+        for (ll dy = -1; dy <= 1; dy++) {
+            auto it = grid.find({cx + dx, cy + dy});
+            if (it == grid.end()) {
+                continue;
+            }
+            for (int v : it->second) {
+                if (dist(a[pos], a[v]) < L) {
+                    t.pb(a[v]);
+                }
+            }
         }
     }
 
-    sort(all(P), [&](r a, r b){
-        return (a - p0) % (b - p0) > 0
-        || ((a - p0) % (b - p0) == 0 && sqr_len(a - p0) < sqr_len(b - p0));
-    });
-
-    vector<r> hull;
-    for (r p : P) {
-        while ((int)hull.size() > 1) {
-            r new_v = p - hull.back();
-            r old_v = hull.back() - hull[(int)hull.size() - 2];
-            if (new_v % old_v >= 0)
-                hull.pop_back();
-            else
-                break;
+    double min_dist = INFLL;
+    for (int i = 0; i < sz(t); i++) {
+        for (int j = i + 1; j < sz(t); j++) {
+            if (dist(t[i], t[j]) < L) {
+                min_dist = min(min_dist, max({dist(t[i], t[j]), dist(t[i], a[pos]), dist(t[j], a[pos])}));
+            }
         }
-        hull.push_back(p);
     }
-    return hull;
+    return min_dist;
 }
 
 void solve() {
-    int n, m;
-    cin >> n >> m;
-    vector<line> lines(n);
-    vector<r> p(m);
-
-    for (line& l : lines) {
-        cin >> l.a >> l.b >> l.c;
-    }
-    for (r& point : p) {
-        cin >> point;
+    cin >> n;
+    ll minx = 1e18, maxx = -1e18, miny = 1e18, maxy = -1e18;
+    for(int i = 0; i < n; i++){
+        cin >> a[i].x >> a[i].y;
     }
 
-    vector<r> hull = graham(p);
-    vector<double> dirs;
-    for (int i = 0; i < sz(hull); i++) {
-        dirs.pb(norm(angle(hull[(i + 1) % sz(hull)] - hull[i])));
-    }
+    shuffle(a, a + n, rnd);
+    grid.reserve(MAXN * 4);
 
-    // display(dirs);
-    assert(is_sorted(all(dirs)));
+    double L = max({dist(a[0], a[1]), dist(a[0], a[2]), dist(a[1], a[2])});
+    rebuild(2, L);
 
-    vi ans;
-    for (int i = 0; i < n; i++) {
-        auto [a, b, c] = lines[i];
-
-        if (sz(hull) < 3) {
-            if (brute(hull, lines[i])) {
-                ans.pb(i + 1);
-            }
+    for (int i = 3; i < n; i++) {
+        double dL = calc(i, L);
+        if (dL < L) {
+            L = dL;
+            rebuild(i, L);
         } else {
-            ll new_c1 = get_c(hull, dirs, r{-b, a}, lines[i]);
-            ll new_c2 = get_c(hull, dirs, r{b, -a}, lines[i]);
-
-            if (c >= min(new_c1, new_c2) && c <= max(new_c1, new_c2)) {
-                ans.pb(i + 1);
-            }
+            grid[{a[i].x / L, a[i].y / L}].pb(i);
         }
     }
 
-    cout << sz(ans) << '\n';
-    for (int pos : ans) {
-        cout << pos << ' ';
-    }
-    cout << '\n';
+    cout << L << '\n';
 }
 
 int main() {
