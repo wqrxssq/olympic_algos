@@ -105,97 +105,112 @@ double get_h(r a, r b, r c) {
     return fabs(double((b - a) % (c - a)) / len(b - a));
 }
 
-double dist_point_to_segment(r a, r b, r c) {
-    if (is_h_on_segment(a, b, c)) {
-        return get_h(a, b, c);
+double angle(r a) {
+    return atan2(a.y, a.x);
+}
+double norm(double rad) {
+    return (rad < 0 ? rad + 2 * PI : rad);
+}
+
+struct line {
+    ll a, b, c;
+};
+
+bool brute(vector<r>& P, line n) {
+    if (sz(P) == 1) {
+        return P[0].x * n.a + P[0].y * n.b + n.c == 0;
     } else {
-        return min(len(c - a), len(c - b));
+        return P[0].x * n.a + P[0].y * n.b + n.c == 0 ||
+               P[1].x * n.a + P[1].y * n.b + n.c == 0 ||
+               ((P[0].x * n.a + P[0].y * n.b + n.c > 0) != (P[1].x * n.a + P[1].y * n.b + n.c > 0));
     }
 }
 
-bool is_in_poly(r a, vector<r>& P) {
-    int n = sz(P);
-    bool flag = (a - P[0]) % (a - P[1]) >= 0;
-    for (int i = 0; i < n; i++) {
-        if (((a - P[i]) % (a - P[(i + 1) % n]) >= 0) != flag) {
-            return false;
+ll get_c(vector<r>& hull, vector<double>& dirs, r val, line n) {
+    double angle_val = norm(angle(val));
+    int pos = lower_bound(all(dirs), angle_val) - dirs.begin();
+
+    // Ax + By + C = 0
+    // C = -Ax - By
+
+    pos %= sz(hull);
+
+    return -n.a * hull[pos].x - n.b * hull[pos].y;
+}
+
+vector<r> graham(vector<r>& P) {
+    r p0 = P[0];
+    for (r p : P) {
+        if (p.y < p0.y || (p.y == p0.y && p.x < p0.x)) {
+            p0 = p;
         }
     }
-    return true;
-}
 
-double dist_dot_polygon(r a, vector<r>& P) {
-    if (is_in_poly(a, P)) {
-        return 0;
-    } else {
-        int n = sz(P);
-        double res = INFLL;
-        for (int i = 0; i < n; i++) {
-            res = min(res, dist_point_to_segment(P[i], P[(i + 1) % n], a));
+    sort(all(P), [&](r a, r b){
+        return (a - p0) % (b - p0) > 0
+        || ((a - p0) % (b - p0) == 0 && sqr_len(a - p0) < sqr_len(b - p0));
+    });
+
+    vector<r> hull;
+    for (r p : P) {
+        while ((int)hull.size() > 1) {
+            r new_v = p - hull.back();
+            r old_v = hull.back() - hull[(int)hull.size() - 2];
+            if (new_v % old_v >= 0)
+                hull.pop_back();
+            else
+                break;
         }
-        return res;
+        hull.push_back(p);
     }
-}
-
-void reorder_polygon(vector<r> & P){
-    int pos = 0;
-    for (int i = 1; i < P.size(); i++){
-        if (P[i].y < P[pos].y || (P[i].y == P[pos].y && P[i].x < P[pos].x))
-            pos = i;
-    }
-    rotate(P.begin(), P.begin() + pos, P.end());
-}
-
-vector<r> minkowski(vector<r>& P, vector<r>& Q){
-    reorder_polygon(P);
-    reorder_polygon(Q);
-
-    P.push_back(P[0]);
-    P.push_back(P[1]);
-    Q.push_back(Q[0]);
-    Q.push_back(Q[1]);
-
-    vector<r> result;
-    int i = 0, j = 0;
-    while (i < P.size() - 2 || j < Q.size() - 2) {
-        result.push_back(P[i] + Q[j]);
-        auto cross = (P[i + 1] - P[i]) % (Q[j + 1] - Q[j]);
-        if (cross >= 0 && i < P.size() - 2)
-            i++;
-        if (cross <= 0 && j < Q.size() - 2)
-            j++;
-    }
-    return result;
-}
-
-double dist_2_polygons(vector<r>& P, vector<r>& Q) {
-    for (r& p : Q) {
-        p = p * -1;
-    }
-
-    vector<r> sum_minkowski = minkowski(P, Q);
-
-    return dist_dot_polygon(r{0, 0}, sum_minkowski);
+    return hull;
 }
 
 void solve() {
-    int n;
-    cin >> n;
-    vector<r> P(n);
+    int n, m;
+    cin >> n >> m;
+    vector<line> lines(n);
+    vector<r> p(m);
+
+    for (line& l : lines) {
+        cin >> l.a >> l.b >> l.c;
+    }
+    for (r& point : p) {
+        cin >> point;
+    }
+
+    vector<r> hull = graham(p);
+    vector<double> dirs;
+    for (int i = 0; i < sz(hull); i++) {
+        dirs.pb(norm(angle(hull[(i + 1) % sz(hull)] - hull[i])));
+    }
+
+    // display(dirs);
+    assert(is_sorted(all(dirs)));
+
+    vi ans;
     for (int i = 0; i < n; i++) {
-        cin >> P[i];
-    }
-    reverse(all(P));
+        auto [a, b, c] = lines[i];
 
-    int m;
-    cin >> m;
-    vector<r> Q(m);
-    for (int i = 0; i < m; i++) {
-        cin >> Q[i];
-    }
-    reverse(all(Q));
+        if (sz(hull) < 3) {
+            if (brute(hull, lines[i])) {
+                ans.pb(i + 1);
+            }
+        } else {
+            ll new_c1 = get_c(hull, dirs, r{-b, a}, lines[i]);
+            ll new_c2 = get_c(hull, dirs, r{b, -a}, lines[i]);
 
-    cout << dist_2_polygons(P, Q) << '\n';
+            if (c >= min(new_c1, new_c2) && c <= max(new_c1, new_c2)) {
+                ans.pb(i + 1);
+            }
+        }
+    }
+
+    cout << sz(ans) << '\n';
+    for (int pos : ans) {
+        cout << pos << ' ';
+    }
+    cout << '\n';
 }
 
 int main() {
